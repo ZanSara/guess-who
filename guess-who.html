@@ -47,6 +47,72 @@
             max-width: 800px;
         }
         
+        .chosen-characters {
+            display: flex;
+            justify-content: space-between;
+            width: 100%;
+            margin-bottom: 2rem;
+            gap: 2rem;
+        }
+        
+        .chosen-character {
+            flex: 1;
+            background: rgba(255, 255, 255, 0.95);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            border-radius: 20px;
+            padding: 1.5rem;
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+            backdrop-filter: blur(10px);
+            text-align: center;
+        }
+        
+        .chosen-character h3 {
+            margin: 0 0 1rem 0;
+            color: #333;
+            font-size: 1.25rem;
+            font-weight: 600;
+        }
+        
+        .chosen-card {
+            width: 120px;
+            height: 160px;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
+            margin: 0 auto;
+            position: relative;
+            background: white;
+            transition: all 0.3s ease;
+        }
+        
+        .chosen-card:hover {
+            transform: translateY(-5px) scale(1.05);
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chosen-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+        
+        .chosen-card.face-down {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 3rem;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .chosen-card.face-down::before {
+            content: '?';
+        }
+        
+        
         .board {
             width: 100%;
             min-height: 500px;
@@ -93,6 +159,248 @@
         
         .character-card.eliminated:hover {
             transform: scale(0.95);
+        }
+
+        .llm-board {
+            width: 100%;
+            min-height: 400px;
+            background: linear-gradient(135deg, #e8f5e8 0%, #d4e6d4 100%);
+            margin-top: 2rem;
+            border-radius: 15px;
+            border: 1px solid rgba(76, 175, 80, 0.3);
+            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.15);
+            backdrop-filter: blur(4px);
+            padding: 1rem;
+        }
+
+        .llm-board-header {
+            text-align: center;
+            margin-bottom: 1rem;
+            padding-bottom: 1rem;
+            border-bottom: 2px solid rgba(76, 175, 80, 0.2);
+        }
+
+        .llm-board-header h3 {
+            margin: 0;
+            color: #2e7d32;
+            font-size: 1.5rem;
+            font-weight: 600;
+            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+
+        .llm-board-header p {
+            margin: 0.5rem 0 0 0;
+            color: #4caf50;
+            font-size: 0.9rem;
+            font-style: italic;
+        }
+
+        .system-prompt-button {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 60px;
+            height: 60px;
+            font-size: 24px;
+            cursor: pointer;
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
+            transition: all 0.3s ease;
+            z-index: 999;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .system-prompt-button:hover {
+            transform: translateY(-3px) scale(1.1);
+            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
+        }
+
+        .system-prompt-button:active {
+            transform: translateY(-1px);
+        }
+
+        .system-prompt-modal {
+            display: none;
+            position: fixed;
+            z-index: 2000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0, 0, 0, 0.7);
+            backdrop-filter: blur(8px);
+            animation: fadeIn 0.3s ease;
+        }
+
+        .system-prompt-modal-content {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(20px);
+            position: absolute;
+            left: 50%;
+            top: 50%;
+            transform: translate(-50%, -50%);
+            padding: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.3);
+            width: 90%;
+            max-width: 800px;
+            max-height: 80vh;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
+            animation: slideIn 0.3s ease;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .system-prompt-modal h2 {
+            margin-top: 0;
+            margin-bottom: 1rem;
+            color: #333;
+            font-size: 1.8rem;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+
+        .system-prompt-modal h2::before {
+            content: '⚙️';
+            font-size: 1.5rem;
+        }
+
+        .system-prompt-textarea {
+            width: 100%;
+            height: 400px;
+            padding: 1rem;
+            border: 2px solid #e2e8f0;
+            border-radius: 15px;
+            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
+            font-size: 0.9rem;
+            line-height: 1.5;
+            resize: vertical;
+            outline: none;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
+            margin-bottom: 1.5rem;
+        }
+
+        .system-prompt-textarea:focus {
+            border-color: #ff9800;
+            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
+            background: white;
+        }
+
+        .system-prompt-actions {
+            display: flex;
+            gap: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .system-prompt-actions button {
+            padding: 0.75rem 1.5rem;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 1rem;
+            transition: all 0.3s ease;
+            flex: 1;
+            min-width: 120px;
+        }
+
+        .save-prompt-btn {
+            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
+        }
+
+        .save-prompt-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
+        }
+
+        .reset-prompt-btn {
+            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
+        }
+
+        .reset-prompt-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
+        }
+
+        .cancel-prompt-btn {
+            background: #6c757d;
+            color: white;
+            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
+        }
+
+        .cancel-prompt-btn:hover {
+            background: #545b62;
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
+        }
+
+        .llm-cards-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
+            gap: 0.4rem 0.4rem;
+            justify-items: center;
+            align-items: center;
+            max-width: 100%;
+        }
+
+        .llm-character-card {
+            width: 70px;
+            height: 93px;
+            border-radius: 6px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
+            transition: all 0.3s ease;
+            position: relative;
+            background: white;
+            border: 2px solid transparent;
+        }
+
+        .llm-character-card:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
+            border-color: #4caf50;
+        }
+
+        .llm-character-card.eliminated {
+            opacity: 0.2;
+            filter: grayscale(100%) brightness(0.7);
+            transform: scale(0.85);
+            border-color: #ff5722;
+        }
+
+        .llm-character-card.eliminated:hover {
+            transform: scale(0.9);
+            border-color: #ff5722;
+        }
+
+        .llm-character-card img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            object-position: center;
+        }
+
+        .loading-llm-board {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 300px;
+            font-size: 1.1rem;
+            color: #4caf50;
+            font-weight: 500;
         }
         
         .character-card img {
@@ -671,6 +979,21 @@
                 margin: 1rem 0;
             }
             
+            .chosen-characters {
+                flex-direction: column;
+                gap: 1rem;
+                margin-bottom: 1.5rem;
+            }
+            
+            .chosen-card {
+                width: 100px;
+                height: 133px;
+            }
+            
+            .chosen-card.face-down {
+                font-size: 2.5rem;
+            }
+            
             .chat-messages {
                 height: 250px;
             }
@@ -688,6 +1011,51 @@
             
             .message {
                 max-width: 90%;
+            }
+            
+            .llm-board {
+                min-height: 350px;
+            }
+            
+            .llm-cards-grid {
+                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
+                gap: 0.3rem 0.3rem;
+            }
+            
+            .llm-character-card {
+                width: 60px;
+                height: 80px;
+            }
+            
+            .llm-board-header h3 {
+                font-size: 1.3rem;
+            }
+            
+            .system-prompt-button {
+                bottom: 15px;
+                right: 15px;
+                width: 50px;
+                height: 50px;
+                font-size: 20px;
+            }
+            
+            .system-prompt-modal-content {
+                width: 95%;
+                padding: 1.5rem;
+                max-height: 85vh;
+            }
+            
+            .system-prompt-textarea {
+                height: 300px;
+                font-size: 0.85rem;
+            }
+            
+            .system-prompt-actions {
+                flex-direction: column;
+            }
+            
+            .system-prompt-actions button {
+                min-width: unset;
             }
         }
     </style>
@@ -713,6 +1081,19 @@
                 <!-- Character cards will be loaded here -->
             </div>
         </div>
+        <div class="chosen-characters">
+            <div class="chosen-character">
+                <h3>Your Character</h3>
+                <div class="chosen-card" id="userChosenCard">
+                    <img id="userChosenImage" src="" alt="">
+                </div>
+            </div>
+            <div class="chosen-character">
+                <h3>Opponent's Character</h3>
+                <div class="chosen-card face-down" id="opponentChosenCard">
+                </div>
+            </div>
+        </div>
         <div class="chat-container">
             <div class="chat-messages" id="chatMessages">
                 <!-- Chat messages will appear here -->
@@ -722,7 +1103,23 @@
                 <button onclick="sendMessage()">Send</button>
             </div>
         </div>
+        <div class="llm-board">
+            <div class="llm-board-header">
+                <h3>AI's Board</h3>
+            </div>
+            <div class="loading-llm-board" id="loadingLLMBoard">
+                Loading AI board...
+            </div>
+            <div class="llm-cards-grid" id="llmCardsGrid" style="display: none;">
+                <!-- LLM character cards will be loaded here -->
+            </div>
+        </div>
     </div>
+
+    <!-- System Prompt Button -->
+    <button class="system-prompt-button" onclick="showSystemPromptModal()" title="Edit System Prompt">
+        ⚙️
+    </button>
 
     <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal">
@@ -803,6 +1200,20 @@
         </div>
     </div>
 
+    <!-- System Prompt Modal -->
+    <div id="systemPromptModal" class="system-prompt-modal">
+        <div class="system-prompt-modal-content">
+            <h2>System Prompt Editor</h2>
+            <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
+            <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
+            <div class="system-prompt-actions">
+                <button class="save-prompt-btn" onclick="saveSystemPrompt()">Save Changes</button>
+                <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
+                <button class="cancel-prompt-btn" onclick="closeSystemPromptModal()">Cancel</button>
+            </div>
+        </div>
+    </div>
+
     <script>
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
@@ -837,6 +1248,36 @@
         // Game board elements
         const loadingBoard = document.getElementById('loadingBoard');
         const cardsGrid = document.getElementById('cardsGrid');
+        const loadingLLMBoard = document.getElementById('loadingLLMBoard');
+        const llmCardsGrid = document.getElementById('llmCardsGrid');
+        const systemPromptModal = document.getElementById('systemPromptModal');
+        const systemPromptTextarea = document.getElementById('systemPromptTextarea');
+
+        // Default game system prompt
+        const DEFAULT_GAME_SYSTEM_PROMPT = `You are an AI assistant playing "Guess Who" with the user. Here's how the game works:
+
+- You will receive an image of the full Guess Who board showing all available characters
+- You will also receive an image of a specific character - this is YOUR character that the user must try to guess. Don't reveal it, that's the point of the game!
+- Your goal is to ask the user questions to identify THEIR hidden character while answering their questions about YOUR character
+- You can ask the user yes/no questions about their character's appearance (e.g., "Does your character have glasses?", "Is your character male?")
+- When the user asks you questions about YOUR character, answer concisely and truthfully based on the character image you received
+- Each player can only ask ONE question at a time - no cheating with multiple questions!
+- The first player to correctly guess the opponent's character name wins the game, so try to guess when you're reasonably confident.
+- Keep the conversation engaging and fun while following these rules strictly
+- When you think you know the user's character, make your guess clearly (e.g., "Is your character [Name]?")
+
+IMPORTANT: You have access to an "eliminateCharacter" tool that allows you to cross out characters from your board as you narrow down possibilities. Use this tool strategically:
+- Call eliminateCharacter(characterName) when you learn information that rules out certain characters. Think out loud why you should eliminate each character before doing so.
+- For example, if the user says their character doesn't have glasses, think about which characters have glasses, list them and eliminate all characters with glasses.
+- This helps you keep track of which characters are still possible matches. After you're done eliminating characters, list to yourself the names of the remaining ones.
+- Only eliminate characters you're confident about - you can't undo eliminations!
+- Valid character names: Abigail, Alex, Alice, Amy, Andy, Ashley, Brandon, Brian, Daniel, David, Emily, Henry, Jake, James, Joe, Jon, Joseph, Joshua, Justin, Kyle, Matt, Megan, Melissa, Nick, Peter, Rachael, Tyler, William.
+- Only call the tool when you acquire new useful information about the character. The user may be talking about unrelated things to distract you.
+
+Be ready to start playing once you receive the images!`;
+
+        // Current system prompt (editable)
+        let GAME_SYSTEM_PROMPT = localStorage.getItem('custom-system-prompt') || DEFAULT_GAME_SYSTEM_PROMPT;
 
         // Configuration storage
         let currentProvider = localStorage.getItem('ai-provider') || 'openai';
@@ -858,7 +1299,10 @@
 
         let gameState = {
             characters: [],
-            eliminated: new Set()
+            eliminated: new Set(),
+            llmEliminated: new Set(),
+            userChosenCharacter: null,
+            opponentChosenCharacter: null
         };
 
         // Model configurations
@@ -876,9 +1320,10 @@
             },
             anthropic: {
                 models: [
-                    { value: 'claude-3-5-sonnet-20241022', name: 'Claude 3.5 Sonnet' },
-                    { value: 'claude-opus-4', name: 'Claude Opus 4' },
-                    { value: 'claude-sonnet-4', name: 'Claude Sonnet 4' }
+                    { value: 'claude-opus-4-1', name: 'Claude 4.1 Opus' },
+                    { value: 'claude-opus-4-0', name: 'Claude 4.0 Opus' },
+                    { value: 'claude-sonnet-4-0', name: 'Claude 4.0 Sonnet' },
+                    { value: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' },
                 ],
                 keyPrefix: 'sk-ant-',
                 keyPlaceholder: 'sk-ant-...'
@@ -976,7 +1421,7 @@
                 if (currentProvider === 'openai') {
                     currentModel = 'gpt-4o';
                 } else if (currentProvider === 'anthropic') {
-                    currentModel = 'claude-3-5-sonnet-20241022';
+                    currentModel = 'claude-3-7-sonnet-latest';
                 } else {
                     currentModel = 'gemini-2.5-pro';
                 }
@@ -1168,7 +1613,7 @@
                 // Close modal after delay
                 setTimeout(() => {
                     closeModal();
-                }, 1500);
+                }, 500);
 
             } catch (error) {
                 showModalMessage(error.message, true);
@@ -1178,19 +1623,26 @@
             }
         }
 
-        async function validateOpenAIKey(key, model) {
+                async function validateOpenAIKey(key, model) {
+            const params = {
+                model: model,
+                messages: [{ role: 'user', content: 'test' }],
+                stream: false
+            };
+
+            if (model.includes('gpt-5')) {
+                params.max_completion_tokens = 1;
+            } else {
+                params.max_tokens = 1;
+            }
+
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${key}`
                 },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [{ role: 'user', content: 'test' }],
-                    max_tokens: 1,
-                    stream: false
-                })
+                body: JSON.stringify(params)
             });
 
             if (response.status === 401) {
@@ -1215,8 +1667,9 @@
                 },
                 body: JSON.stringify({
                     model: model,
-                    messages: [{ role: 'user', content: 'test' }],
-                    max_tokens: 1
+                    messages: [{ role: 'user', content: 'Hi' }],
+                    max_tokens: 1,
+                    stream: false
                 })
             });
 
@@ -1226,13 +1679,27 @@
                 throw new Error('Rate limit exceeded. Your API key is valid but you\'ve hit the rate limit.');
             } else if (response.status === 403) {
                 throw new Error('API key does not have access to the required model.');
+            } else if (response.status === 400) {
+                // Check if it's a bad request due to invalid model or key format
+                const errorData = await response.json().catch(() => null);
+                if (errorData && errorData.error && errorData.error.message) {
+                    if (errorData.error.message.includes('model') || errorData.error.message.includes('Model')) {
+                        throw new Error('Selected model is not available with this API key.');
+                    } else {
+                        throw new Error(`API key validation failed: ${errorData.error.message}`);
+                    }
+                } else {
+                    throw new Error('Invalid API key format or request. Please check your Anthropic API key.');
+                }
             } else if (!response.ok) {
-                throw new Error(`API validation failed (${response.status}). Please try again.`);
+                const errorData = await response.json().catch(() => null);
+                const errorMessage = errorData?.error?.message || `API validation failed (${response.status}). Please try again.`;
+                throw new Error(errorMessage);
             }
         }
 
-                async function validateGoogleKey(key, model) {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models?key=${key}`, {
+        async function validateGoogleKey(key, model) {
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`, {
                 method: 'GET',
                 headers: {
                     'Content-Type': 'application/json'
@@ -1270,7 +1737,6 @@
             const typingElement = document.createElement('div');
             typingElement.className = 'typing-indicator';
             typingElement.innerHTML = `
-                <span>GPT is typing</span>
                 <div class="typing-dots">
                     <div class="typing-dot"></div>
                     <div class="typing-dot"></div>
@@ -1288,34 +1754,121 @@
             chatInput.disabled = processing;
             if (processing) {
                 sendButton.textContent = 'Sending...';
-            } else {
+            } else {`You are a helpful AI assistant playing a game of "Guess Who" with the user. Be engaging and fun while helping them play the game.`
                 sendButton.textContent = 'Send';
             }
         }
 
-        async function callOpenAI(message) {
+        async function getImageAsBase64(imagePath) {
+            try {
+                const response = await fetch(imagePath);
+                const blob = await response.blob();
+                return new Promise((resolve) => {
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                        const base64 = reader.result.split(',')[1]; // Remove data:image/png;base64, prefix
+                        resolve(base64);
+                    };
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error('Error loading image:', error);
+                return '';
+            }
+        }
+
+        // Track if this is the first message of the game
+        let isFirstGameMessage = true;
+        
+        // Conversation history
+        let conversationHistory = [];
+
+        // Function definitions for AI tools
+        const ELIMINATE_CHARACTER_FUNCTION = {
+            name: 'eliminateCharacter',
+            description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
+            parameters: {
+                type: 'object',
+                properties: {
+                    characterName: {
+                        type: 'string',
+                        description: 'The exact name of the character to eliminate from the board',
+                        enum: characters
+                    }
+                },
+                required: ['characterName']
+            }
+        };
+
+        async function callOpenAI(message, isFirstMessage = false) {
+            const messages = [];
+            
+            // Always add system message
+            messages.push({
+                role: 'system',
+                content: GAME_SYSTEM_PROMPT
+            });
+            
+            if (isFirstMessage) {
+                // Add user message with board image and opponent character image
+                const firstUserMessage = {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: `Let's play Guess Who! Here's the game board and your character. ${message}`
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:image/png;base64,${await getImageAsBase64('./full-board.png')}`
+                            }
+                        },
+                        {
+                            type: 'image_url',
+                            image_url: {
+                                url: `data:image/png;base64,${await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)}`
+                            }
+                        }
+                    ]
+                };
+                messages.push(firstUserMessage);
+                // Store in conversation history
+                conversationHistory.push(firstUserMessage);
+            } else {
+                // Add all conversation history
+                messages.push(...conversationHistory);
+                
+                // Add current user message
+                const currentUserMessage = {
+                    role: 'user',
+                    content: message
+                };
+                messages.push(currentUserMessage);
+                // Store in conversation history
+                conversationHistory.push(currentUserMessage);
+            }
+
+            const params = {
+                model: currentModel,
+                messages: messages,
+                tools: [
+                    {
+                        type: 'function',
+                        function: ELIMINATE_CHARACTER_FUNCTION
+                    }
+                ],
+                tool_choice: 'auto',
+                stream: true
+            };
+
             const response = await fetch('https://api.openai.com/v1/chat/completions', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${apiKeys.openai}`
                 },
-                body: JSON.stringify({
-                    model: currentModel,
-                    messages: [
-                        {
-                            role: 'system',
-                            content: 'You are a helpful AI assistant playing a game of "Guess Who" with the user. Be engaging and fun while helping them play the game.'
-                        },
-                        {
-                            role: 'user',
-                            content: message
-                        }
-                    ],
-                    max_tokens: 500,
-                    temperature: 0.7,
-                    stream: true
-                })
+                body: JSON.stringify(params)
             });
 
             if (!response.ok) {
@@ -1331,7 +1884,56 @@
             return response;
         }
 
-        async function callAnthropic(message) {
+        async function callAnthropic(message, isFirstMessage = false) {
+            const messages = [];
+            
+            if (isFirstMessage) {
+                // Add user message with images for Anthropic
+                const firstUserMessage = {
+                    role: 'user',
+                    content: [
+                        {
+                            type: 'text',
+                            text: `Let's play Guess Who! Here's the game board and your character. ${message}`
+                        },
+                        {
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: 'image/png',
+                                data: await getImageAsBase64('./full-board.png')
+                            }
+                        },
+                        {
+                            type: 'image',
+                            source: {
+                                type: 'base64',
+                                media_type: 'image/png',
+                                data: await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)
+                            }
+                        }
+                    ]
+                };
+                messages.push(firstUserMessage);
+                // Store in conversation history (without images for subsequent messages)
+                conversationHistory.push({
+                    role: 'user',
+                    content: `Let's play Guess Who! Here's the game board and your character. ${message}`
+                });
+            } else {
+                // Add all conversation history
+                messages.push(...conversationHistory);
+                
+                // Add current user message
+                const currentUserMessage = {
+                    role: 'user',
+                    content: message
+                };
+                messages.push(currentUserMessage);
+                // Store in conversation history
+                conversationHistory.push(currentUserMessage);
+            }
+
             const response = await fetch('https://api.anthropic.com/v1/messages', {
                 method: 'POST',
                 headers: {
@@ -1342,15 +1944,27 @@
                 },
                 body: JSON.stringify({
                     model: currentModel,
-                    messages: [
+                    system: GAME_SYSTEM_PROMPT,
+                    messages: messages,
+                    tools: [
                         {
-                            role: 'user',
-                            content: `You are a helpful AI assistant playing a game of "Guess Who" with the user. Be engaging and fun while helping them play the game.\n\n${message}`
+                            name: 'eliminateCharacter',
+                            description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
+                            input_schema: {
+                                type: 'object',
+                                properties: {
+                                    characterName: {
+                                        type: 'string',
+                                        description: 'The exact name of the character to eliminate from the board',
+                                        enum: characters
+                                    }
+                                },
+                                required: ['characterName']
+                            }
                         }
                     ],
-                    max_tokens: 500,
-                    temperature: 0.7,
-                    stream: true
+                    stream: true,
+                    max_tokens: 1000
                 })
             });
 
@@ -1367,20 +1981,78 @@
             return response;
         }
 
-        async function callGoogle(message) {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${currentModel}:streamGenerateContent?key=${apiKeys.google}`, {
+        async function callGemini(message, isFirstMessage = false) {
+            const contents = [];
+            
+            if (isFirstMessage) {
+                // Add user message with images for Gemini
+                const firstUserMessage = {
+                    role: 'user',
+                    parts: [
+                        { text: `${GAME_SYSTEM_PROMPT}\n\nLet's play Guess Who! Here's the game board and your character. ${message}` },
+                        {
+                            inlineData: {
+                                mimeType: 'image/png',
+                                data: await getImageAsBase64('./full-board.png')
+                            }
+                        },
+                        {
+                            inlineData: {
+                                mimeType: 'image/png',
+                                data: await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)
+                            }
+                        }
+                    ]
+                };
+                contents.push(firstUserMessage);
+                // Store in conversation history (text only for subsequent messages)
+                conversationHistory.push({
+                    role: 'user',
+                    parts: [{ text: `Let's play Guess Who! Here's the game board and your character. ${message}` }]
+                });
+            } else {
+                // Add all conversation history
+                contents.push(...conversationHistory);
+                
+                // Add current user message
+                const currentUserMessage = {
+                    role: 'user',
+                    parts: [{ text: message }]
+                };
+                contents.push(currentUserMessage);
+                // Store in conversation history
+                conversationHistory.push(currentUserMessage);
+            }
+
+            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${currentModel}:streamGenerateContent?key=${apiKeys.google}`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
                 },
                 body: JSON.stringify({
-                    contents: [{
-                        role: 'user',
-                        parts: [{ text: `You are a helpful AI assistant playing a game of "Guess Who" with the user. Be engaging and fun while helping them play the game.\n\n${message}` }]
-                    }],
+                    contents: contents,
+                    tools: [
+                        {
+                            functionDeclarations: [
+                                {
+                                    name: 'eliminateCharacter',
+                                    description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
+                                    parameters: {
+                                        type: 'object',
+                                        properties: {
+                                            characterName: {
+                                                type: 'string',
+                                                description: 'The exact name of the character to eliminate from the board',
+                                                enum: characters
+                                            }
+                                        },
+                                        required: ['characterName']
+                                    }
+                                }
+                            ]
+                        }
+                    ],
                     generationConfig: {
-                        temperature: 0.7,
-                        maxOutputTokens: 500
                     }
                 })
             });
@@ -1403,6 +2075,8 @@
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = '';
+            let toolCalls = [];
+            let currentToolCall = null;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -1419,10 +2093,41 @@
                         try {
                             const parsed = JSON.parse(data);
                             const delta = parsed.choices[0].delta;
+                            
+                            // Handle regular content
                             if (delta && delta.content) {
                                 fullResponse += delta.content;
                                 messageElement.textContent = fullResponse;
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
+                            }
+                            
+                            // Handle tool calls
+                            if (delta && delta.tool_calls) {
+                                for (const toolCallDelta of delta.tool_calls) {
+                                    const index = toolCallDelta.index;
+                                    
+                                    // Initialize tool call if needed
+                                    if (!toolCalls[index]) {
+                                        toolCalls[index] = {
+                                            id: '',
+                                            type: 'function',
+                                            function: { name: '', arguments: '' }
+                                        };
+                                    }
+                                    
+                                    // Update tool call
+                                    if (toolCallDelta.id) {
+                                        toolCalls[index].id += toolCallDelta.id;
+                                    }
+                                    if (toolCallDelta.function) {
+                                        if (toolCallDelta.function.name) {
+                                            toolCalls[index].function.name += toolCallDelta.function.name;
+                                        }
+                                        if (toolCallDelta.function.arguments) {
+                                            toolCalls[index].function.arguments += toolCallDelta.function.arguments;
+                                        }
+                                    }
+                                }
                             }
                         } catch (e) {
                             // Ignore parsing errors for incomplete chunks
@@ -1430,12 +2135,40 @@
                     }
                 }
             }
+
+            // Execute any tool calls
+            for (const toolCall of toolCalls) {
+                if (toolCall.function.name === 'eliminateCharacter') {
+                    try {
+                        const args = JSON.parse(toolCall.function.arguments);
+                        const result = eliminateCharacter(args.characterName);
+                        
+                        // Add visual feedback to chat
+                        // if (result.success) {
+                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
+                        // } else {
+                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
+                        // }
+                        messageElement.textContent = fullResponse;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        console.error('Error executing tool call:', e);
+                    }
+                }
+            }
+
+            return { 
+                response: fullResponse, 
+                hasToolCalls: toolCalls.length > 0 
+            };
         }
 
         async function streamAnthropicResponse(response, messageElement) {
             const reader = response.body.getReader();
             const decoder = new TextDecoder();
             let fullResponse = '';
+            let toolCalls = [];
+            let currentToolCall = null;
 
             while (true) {
                 const { done, value } = await reader.read();
@@ -1451,53 +2184,175 @@
                         
                         try {
                             const parsed = JSON.parse(data);
+                            
+                            // Handle regular text content
                             if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
                                 fullResponse += parsed.delta.text;
                                 messageElement.textContent = fullResponse;
                                 chatMessages.scrollTop = chatMessages.scrollHeight;
                             }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                        }
-                    }
-                }
-            }
-        }
-
-        async function streamGoogleResponse(response, messageElement) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullResponse = '';
-            let buffer = '';
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                buffer += decoder.decode(value, { stream: true });
-                
-                // Process buffer line by line
-                let boundary = buffer.indexOf('\n');
-                while (boundary !== -1) {
-                    const line = buffer.substring(0, boundary).trim();
-                    buffer = buffer.substring(boundary + 1);
-
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.candidates && parsed.candidates[0].content.parts[0].text) {
-                                fullResponse += parsed.candidates[0].content.parts[0].text;
-                                messageElement.textContent = fullResponse;
-                                chatMessages.scrollTop = chatMessages.scrollHeight;
+                            
+                            // Handle tool use start
+                            if (parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use') {
+                                currentToolCall = {
+                                    id: parsed.content_block.id,
+                                    name: parsed.content_block.name,
+                                    input: ''
+                                };
+                            }
+                            
+                            // Handle tool use input delta
+                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.partial_json && currentToolCall) {
+                                currentToolCall.input += parsed.delta.partial_json;
+                            }
+                            
+                            // Handle tool use end
+                            if (parsed.type === 'content_block_stop' && currentToolCall) {
+                                toolCalls.push(currentToolCall);
+                                currentToolCall = null;
                             }
                         } catch (e) {
                             // Ignore parsing errors for incomplete chunks
                         }
                     }
-                    boundary = buffer.indexOf('\n');
                 }
             }
+
+            // Execute any tool calls
+            for (const toolCall of toolCalls) {
+                if (toolCall.name === 'eliminateCharacter') {
+                    try {
+                        const args = JSON.parse(toolCall.input);
+                        const result = eliminateCharacter(args.characterName);
+                        
+                        // Add visual feedback to chat
+                        // if (result.success) {
+                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
+                        // } else {
+                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
+                        // }
+                        messageElement.textContent = fullResponse;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        console.error('Error executing tool call:', e);
+                    }
+                }
+            }
+
+            return { 
+                response: fullResponse, 
+                hasToolCalls: toolCalls.length > 0 
+            };
+        }
+
+        async function streamGeminiResponse(response, messageElement) {
+            const reader = response.body.getReader();
+            const decoder = new TextDecoder();
+            let fullResponse = '';
+            let buffer = '';
+            let toolCalls = [];
+
+            while (true) {
+                const { done, value } = await reader.read();
+                if (done) break;
+
+                const chunk = decoder.decode(value, { stream: true });
+                buffer += chunk;
+
+                // Split by newlines but keep incomplete JSON objects in buffer
+                const parts = buffer.split('\n');
+                buffer = parts.pop() || ''; // Keep the last incomplete part
+
+                for (const part of parts) {
+                    const trimmed = part.trim();
+                    if (trimmed && trimmed !== ',' && trimmed !== '[' && trimmed !== ']') {
+                        // Remove trailing comma if present
+                        const cleanJson = trimmed.endsWith(',') ? trimmed.slice(0, -1) : trimmed;
+                        
+                        try {
+                            const parsed = JSON.parse(cleanJson);
+                            if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+                                const content = parsed.candidates[0].content;
+                                
+                                if (content.parts) {
+                                    for (const part of content.parts) {
+                                        // Handle text content
+                                        if (part.text) {
+                                            fullResponse += part.text;
+                                            messageElement.textContent = fullResponse;
+                                            chatMessages.scrollTop = chatMessages.scrollHeight;
+                                        }
+                                        
+                                        // Handle function calls
+                                        if (part.functionCall) {
+                                            toolCalls.push(part.functionCall);
+                                        }
+                                    }
+                                }
+                            }
+                        } catch (e) {
+                            // Ignore parsing errors for incomplete chunks or structural elements
+                        }
+                    }
+                }
+            }
+
+            // Process any remaining buffer content
+            if (buffer.trim()) {
+                const cleanJson = buffer.trim().endsWith(',') ? buffer.trim().slice(0, -1) : buffer.trim();
+                if (cleanJson && cleanJson !== ',' && cleanJson !== '[' && cleanJson !== ']') {
+                    try {
+                        const parsed = JSON.parse(cleanJson);
+                        if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
+                            const content = parsed.candidates[0].content;
+                            
+                            if (content.parts) {
+                                for (const part of content.parts) {
+                                    // Handle text content
+                                    if (part.text) {
+                                        fullResponse += part.text;
+                                        messageElement.textContent = fullResponse;
+                                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                                    }
+                                    
+                                    // Handle function calls
+                                    if (part.functionCall) {
+                                        toolCalls.push(part.functionCall);
+                                    }
+                                }
+                            }
+                        }
+                    } catch (e) {
+                        // Ignore final parsing errors
+                    }
+                }
+            }
+
+            // Execute any tool calls
+            for (const toolCall of toolCalls) {
+                if (toolCall.name === 'eliminateCharacter') {
+                    try {
+                        const args = toolCall.args;
+                        const result = eliminateCharacter(args.characterName);
+                        
+                        // Add visual feedback to chat
+                        // if (result.success) {
+                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
+                        // } else {
+                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
+                        // }
+                        messageElement.textContent = fullResponse;
+                        chatMessages.scrollTop = chatMessages.scrollHeight;
+                    } catch (e) {
+                        console.error('Error executing tool call:', e);
+                    }
+                }
+            }
+
+            return { 
+                response: fullResponse, 
+                hasToolCalls: toolCalls.length > 0 
+            };
         }
 
         async function callAI(message) {
@@ -1518,14 +2373,17 @@
                 console.log('Calling API for provider:', currentProvider);
                 // Call the appropriate API
                 if (currentProvider === 'openai') {
-                    response = await callOpenAI(message);
+                    response = await callOpenAI(message, isFirstGameMessage);
                 } else if (currentProvider === 'anthropic') {
-                    response = await callAnthropic(message);
+                    response = await callAnthropic(message, isFirstGameMessage);
                 } else if (currentProvider === 'google') {
-                    response = await callGoogle(message);
+                    response = await callGemini(message, isFirstGameMessage);
                 } else {
                     throw new Error('Unsupported provider: ' + currentProvider);
                 }
+                
+                // After first message, set flag to false
+                isFirstGameMessage = false;
 
                 console.log('API response received, status:', response.status);
 
@@ -1540,12 +2398,99 @@
                 chatMessages.appendChild(aiMessageElement);
 
                 // Stream the response
+                let aiResponse = '';
+                let hasToolCalls = false;
                 if (currentProvider === 'openai') {
-                    await streamOpenAIResponse(response, aiMessageElement);
+                    const result = await streamOpenAIResponse(response, aiMessageElement);
+                    aiResponse = result.response;
+                    hasToolCalls = result.hasToolCalls;
                 } else if (currentProvider === 'anthropic') {
-                    await streamAnthropicResponse(response, aiMessageElement);
+                    const result = await streamAnthropicResponse(response, aiMessageElement);
+                    aiResponse = result.response;
+                    hasToolCalls = result.hasToolCalls;
                 } else if (currentProvider === 'google') {
-                    await streamGoogleResponse(response, aiMessageElement);
+                    const result = await streamGeminiResponse(response, aiMessageElement);
+                    aiResponse = result.response;
+                    hasToolCalls = result.hasToolCalls;
+                }
+                
+                // Store AI response in conversation history
+                if (currentProvider === 'openai' || currentProvider === 'anthropic') {
+                    conversationHistory.push({
+                        role: 'assistant',
+                        content: aiResponse
+                    });
+                } else if (currentProvider === 'google') {
+                    conversationHistory.push({
+                        role: 'model',
+                        parts: [{ text: aiResponse }]
+                    });
+                }
+
+                // If the response was only tool calls with no text, prompt again for a conversational response
+                if (hasToolCalls && (!aiResponse || aiResponse.trim() === '')) {
+                    console.log('AI response was only tool calls, prompting for conversational response...');
+                    
+                    // Add a follow-up message to get conversational response
+                    const followUpMessage = "Please provide your response or next question.";
+                    
+                    // Add the follow-up message to conversation history
+                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
+                        conversationHistory.push({
+                            role: 'user',
+                            content: followUpMessage
+                        });
+                    } else if (currentProvider === 'google') {
+                        conversationHistory.push({
+                            role: 'user',
+                            parts: [{ text: followUpMessage }]
+                        });
+                    }
+                    
+                    let followUpResponse;
+                    if (currentProvider === 'openai') {
+                        followUpResponse = await callOpenAI(followUpMessage, false);
+                    } else if (currentProvider === 'anthropic') {
+                        followUpResponse = await callAnthropic(followUpMessage, false);
+                    } else if (currentProvider === 'google') {
+                        followUpResponse = await callGemini(followUpMessage, false);
+                    }
+
+                    // Stream the follow-up response
+                    let followUpText = '';
+                    if (currentProvider === 'openai') {
+                        const result = await streamOpenAIResponse(followUpResponse, aiMessageElement);
+                        followUpText = result.response;
+                    } else if (currentProvider === 'anthropic') {
+                        const result = await streamAnthropicResponse(followUpResponse, aiMessageElement);
+                        followUpText = result.response;
+                    } else if (currentProvider === 'google') {
+                        const result = await streamGeminiResponse(followUpResponse, aiMessageElement);
+                        followUpText = result.response;
+                    }
+
+                    // Combine the responses
+                    aiResponse = aiResponse + (aiResponse ? '\n\n' : '') + followUpText;
+
+                    // Update conversation history with the complete response
+                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
+                        conversationHistory[conversationHistory.length - 2].content = aiResponse;
+                    } else if (currentProvider === 'google') {
+                        conversationHistory[conversationHistory.length - 2].parts[0].text = aiResponse;
+                    }
+
+                    // Add the follow-up AI response to history
+                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
+                        conversationHistory.push({
+                            role: 'assistant',
+                            content: followUpText
+                        });
+                    } else if (currentProvider === 'google') {
+                        conversationHistory.push({
+                            role: 'model',
+                            parts: [{ text: followUpText }]
+                        });
+                    }
                 }
 
             } catch (error) {
@@ -1592,6 +2537,59 @@
             if (event.target === apiKeyModal) {
                 closeModal();
             }
+            if (event.target === systemPromptModal) {
+                closeSystemPromptModal();
+            }
+        }
+
+        // System Prompt Modal Functions
+        function showSystemPromptModal() {
+            systemPromptTextarea.value = GAME_SYSTEM_PROMPT;
+            systemPromptModal.style.display = 'block';
+        }
+
+        function closeSystemPromptModal() {
+            systemPromptModal.style.display = 'none';
+        }
+
+        function saveSystemPrompt() {
+            const newPrompt = systemPromptTextarea.value.trim();
+            if (newPrompt) {
+                GAME_SYSTEM_PROMPT = newPrompt;
+                localStorage.setItem('custom-system-prompt', newPrompt);
+                
+                // Show success feedback
+                const saveButton = document.querySelector('.save-prompt-btn');
+                const originalText = saveButton.textContent;
+                saveButton.textContent = 'Saved ✓';
+                saveButton.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
+                
+                setTimeout(() => {
+                    saveButton.textContent = originalText;
+                    closeSystemPromptModal();
+                }, 1000);
+                
+                console.log('System prompt updated successfully');
+            }
+        }
+
+        function resetSystemPrompt() {
+            if (confirm('Are you sure you want to reset to the default system prompt? This will overwrite your current customizations.')) {
+                GAME_SYSTEM_PROMPT = DEFAULT_GAME_SYSTEM_PROMPT;
+                systemPromptTextarea.value = DEFAULT_GAME_SYSTEM_PROMPT;
+                localStorage.removeItem('custom-system-prompt');
+                
+                // Show success feedback
+                const resetButton = document.querySelector('.reset-prompt-btn');
+                const originalText = resetButton.textContent;
+                resetButton.textContent = 'Reset ✓';
+                
+                setTimeout(() => {
+                    resetButton.textContent = originalText;
+                }, 1000);
+                
+                console.log('System prompt reset to default');
+            }
         }
 
         // Game functions
@@ -1622,6 +2620,23 @@
             return card;
         }
 
+        function createLLMCharacterCard(name) {
+            const card = document.createElement('div');
+            card.className = 'llm-character-card';
+            card.dataset.character = name;
+
+            const img = document.createElement('img');
+            img.src = `guess-who-people/${name}.png`;
+            img.alt = name;
+            img.onerror = () => {
+                img.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNzAiIGhlaWdodD0iOTMiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PHJlY3Qgd2lkdGg9IjEwMCUiIGhlaWdodD0iMTAwJSIgZmlsbD0iI2RkZCIvPjx0ZXh0IHg9IjUwJSIgeT0iNTAlIiBmb250LWZhbWlseT0iQXJpYWwiIGZvbnQtc2l6ZT0iMTAiIGZpbGw9IiM5OTkiIHRleHQtYW5jaG9yPSJtaWRkbGUiIGR5PSIuM2VtIj5ObyBJbWFnZTwvdGV4dD48L3N2Zz4=';
+            };
+
+            card.appendChild(img);
+
+            return card;
+        }
+
         function toggleCardElimination(name) {
             const card = cardsGrid.querySelector(`[data-character="${name}"]`);
             if (gameState.eliminated.has(name)) {
@@ -1633,28 +2648,107 @@
             }
         }
 
+        function toggleLLMCardElimination(name) {
+            const card = llmCardsGrid.querySelector(`[data-character="${name}"]`);
+            if (gameState.llmEliminated.has(name)) {
+                gameState.llmEliminated.delete(name);
+                card.classList.remove('eliminated');
+            } else {
+                gameState.llmEliminated.add(name);
+                card.classList.add('eliminated');
+            }
+        }
+
+        // Function for LLM to eliminate characters from its board
+        function eliminateCharacter(characterName) {
+            // Validate character name exists
+            if (!characters.includes(characterName)) {
+                console.warn(`Invalid character name: ${characterName}`);
+                return { success: false, message: `Character "${characterName}" not found` };
+            }
+
+            // Check if already eliminated
+            if (gameState.llmEliminated.has(characterName)) {
+                return { success: false, message: `Character "${characterName}" is already eliminated` };
+            }
+
+            // Eliminate the character from LLM's board
+            gameState.llmEliminated.add(characterName);
+            const card = llmCardsGrid.querySelector(`[data-character="${characterName}"]`);
+            if (card) {
+                card.classList.add('eliminated');
+            }
+
+            console.log(`LLM eliminated character: ${characterName}`);
+            return { success: true, message: `Successfully eliminated ${characterName}` };
+        }
+
+        function selectRandomCharacters() {
+            const shuffledCharacters = shuffleArray([...characters]);
+            gameState.userChosenCharacter = shuffledCharacters[0];
+            gameState.opponentChosenCharacter = shuffledCharacters[1];
+            
+            displayChosenCharacters();
+        }
+
+        function displayChosenCharacters() {
+            // Display user's chosen character
+            const userChosenImage = document.getElementById('userChosenImage');
+            
+            userChosenImage.src = `guess-who-people/${gameState.userChosenCharacter}.png`;
+            userChosenImage.alt = gameState.userChosenCharacter;
+            
+            userChosenImage.onerror = () => {
+                userChosenImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
+            };
+
+            // Opponent's character stays face-down, but we store the name internally
+            console.log(`User's character: ${gameState.userChosenCharacter}`);
+            console.log(`Opponent's character: ${gameState.opponentChosenCharacter} (hidden)`);
+        }
+
         async function loadGameBoard() {
             try {
-                // Shuffle the characters for random order
+                // Reset game state
+                isFirstGameMessage = true;
+                conversationHistory = [];
+                
+                // Select random characters for user and opponent
+                selectRandomCharacters();
+                
+                // Shuffle the characters for random order (same order for both boards)
                 gameState.characters = shuffleArray(characters);
                 gameState.eliminated.clear();
+                gameState.llmEliminated.clear();
 
                 // Clear existing cards
                 cardsGrid.innerHTML = '';
+                llmCardsGrid.innerHTML = '';
 
-                // Create and add character cards
+                // Create and add character cards for both boards
                 gameState.characters.forEach(name => {
-                    const card = createCharacterCard(name);
-                    cardsGrid.appendChild(card);
+                    // User's board
+                    const userCard = createCharacterCard(name);
+                    cardsGrid.appendChild(userCard);
+                    
+                    // LLM's board
+                    const llmCard = createLLMCharacterCard(name);
+                    llmCardsGrid.appendChild(llmCard);
                 });
 
-                // Show the grid and hide loading
+                // Clear chat messages for new game
+                chatMessages.innerHTML = '';
+
+                // Show both grids and hide loading
                 loadingBoard.style.display = 'none';
                 cardsGrid.style.display = 'grid';
+                loadingLLMBoard.style.display = 'none';
+                llmCardsGrid.style.display = 'grid';
 
             } catch (error) {
                 console.error('Error loading game board:', error);
                 loadingBoard.textContent = 'Error loading characters. Please refresh to try again.';
+                loadingLLMBoard.textContent = 'Error loading AI board. Please refresh to try again.';
             }
         }
 
