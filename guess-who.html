@@ -190,31 +190,39 @@
         const llmCardsGrid = document.getElementById('llmCardsGrid');
         const systemPromptTextarea = document.getElementById('systemPromptTextarea');
 
-        // Default game system prompt
-        const DEFAULT_GAME_SYSTEM_PROMPT = `You are an AI assistant playing "Guess Who" with the user. Here's how the game works:
-
-- You will receive an image of the full Guess Who board showing all available characters
-- You will also receive an image of a specific character - this is YOUR character that the user must try to guess. Don't reveal it, that's the point of the game!
-- Your goal is to ask the user questions to identify THEIR hidden character while answering their questions about YOUR character
-- You can ask the user yes/no questions about their character's appearance (e.g., "Does your character have glasses?", "Is your character male?")
-- When the user asks you questions about YOUR character, answer concisely and truthfully based on the character image you received
-- Each player can only ask ONE question at a time - no cheating with multiple questions!
-- The first player to correctly guess the opponent's character name wins the game, so try to guess when you're reasonably confident.
-- Keep the conversation engaging and fun while following these rules strictly
-- When you think you know the user's character, make your guess clearly (e.g., "Is your character [Name]?")
-
-IMPORTANT: You have access to an "eliminateCharacter" tool that allows you to cross out characters from your board as you narrow down possibilities. Use this tool strategically:
-- Call eliminateCharacter(characterName) when you learn information that rules out certain characters. Think out loud why you should eliminate each character before doing so.
-- For example, if the user says their character doesn't have glasses, think about which characters have glasses, list them and eliminate all characters with glasses.
-- This helps you keep track of which characters are still possible matches. After you're done eliminating characters, list to yourself the names of the remaining ones.
-- Only eliminate characters you're confident about - you can't undo eliminations!
-- Valid character names: Abigail, Alex, Alice, Amy, Andy, Ashley, Brandon, Brian, Daniel, David, Emily, Henry, Jake, James, Joe, Jon, Joseph, Joshua, Justin, Kyle, Matt, Megan, Melissa, Nick, Peter, Rachael, Tyler, William.
-- Only call the tool when you acquire new useful information about the character. The user may be talking about unrelated things to distract you.
-
-Be ready to start playing once you receive the images!`;
+        // Default game system prompt (loaded from file)
+        let DEFAULT_GAME_SYSTEM_PROMPT = '';
 
         // Current system prompt (editable)
         let GAME_SYSTEM_PROMPT = localStorage.getItem('custom-system-prompt') || DEFAULT_GAME_SYSTEM_PROMPT;
+
+        // Load default system prompt from file
+        async function loadDefaultSystemPrompt() {
+            try {
+                const response = await fetch('default-system-prompt.txt');
+                if (response.ok) {
+                    DEFAULT_GAME_SYSTEM_PROMPT = await response.text();
+                    // Update GAME_SYSTEM_PROMPT if no custom prompt is set
+                    if (!localStorage.getItem('custom-system-prompt')) {
+                        GAME_SYSTEM_PROMPT = DEFAULT_GAME_SYSTEM_PROMPT;
+                    }
+                } else {
+                    console.warn('Could not load default system prompt file');
+                    // Fallback to a basic prompt
+                    DEFAULT_GAME_SYSTEM_PROMPT = 'You are an AI assistant playing "Guess Who" with the user.';
+                    if (!localStorage.getItem('custom-system-prompt')) {
+                        GAME_SYSTEM_PROMPT = DEFAULT_GAME_SYSTEM_PROMPT;
+                    }
+                }
+            } catch (error) {
+                console.error('Error loading default system prompt:', error);
+                // Fallback to a basic prompt
+                DEFAULT_GAME_SYSTEM_PROMPT = 'You are an AI assistant playing "Guess Who" with the user.';
+                if (!localStorage.getItem('custom-system-prompt')) {
+                    GAME_SYSTEM_PROMPT = DEFAULT_GAME_SYSTEM_PROMPT;
+                }
+            }
+        }
 
         // Configuration storage
         let currentProvider = localStorage.getItem('ai-provider') || 'openai';
@@ -331,7 +339,14 @@ Be ready to start playing once you receive the images!`;
         }
 
         function updateSelectedModel() {
-            currentModel = modelSelect.value;
+            const newModel = modelSelect.value;
+            if (newModel !== currentModel) {
+                currentModel = newModel;
+                // Save the new model selection
+                localStorage.setItem('ai-model', currentModel);
+                // Reload the page to ensure clean state with new model
+                location.reload();
+            }
         }
 
         function showApiKeyModal() {
@@ -531,100 +546,8 @@ Be ready to start playing once you receive the images!`;
             }
         }
 
-                async function validateOpenAIKey(key, model) {
-            const params = {
-                model: model,
-                messages: [{ role: 'user', content: 'test' }],
-                stream: false
-            };
 
-            if (model.includes('gpt-5')) {
-                params.max_completion_tokens = 1;
-            } else {
-                params.max_tokens = 1;
-            }
 
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${key}`
-                },
-                body: JSON.stringify(params)
-            });
-
-            if (response.status === 401) {
-                throw new Error('Invalid API key. Please check your OpenAI API key and try again.');
-            } else if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Your API key is valid but you\'ve hit the rate limit.');
-            } else if (response.status === 403) {
-                throw new Error('API key does not have access to the required model.');
-            } else if (!response.ok) {
-                throw new Error(`API validation failed (${response.status}). Please try again.`);
-            }
-        }
-
-        async function validateAnthropicKey(key, model) {
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': key,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: model,
-                    messages: [{ role: 'user', content: 'Hi' }],
-                    max_tokens: 1,
-                    stream: false
-                })
-            });
-
-            if (response.status === 401) {
-                throw new Error('Invalid API key. Please check your Anthropic API key and try again.');
-            } else if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Your API key is valid but you\'ve hit the rate limit.');
-            } else if (response.status === 403) {
-                throw new Error('API key does not have access to the required model.');
-            } else if (response.status === 400) {
-                // Check if it's a bad request due to invalid model or key format
-                const errorData = await response.json().catch(() => null);
-                if (errorData && errorData.error && errorData.error.message) {
-                    if (errorData.error.message.includes('model') || errorData.error.message.includes('Model')) {
-                        throw new Error('Selected model is not available with this API key.');
-                    } else {
-                        throw new Error(`API key validation failed: ${errorData.error.message}`);
-                    }
-                } else {
-                    throw new Error('Invalid API key format or request. Please check your Anthropic API key.');
-                }
-            } else if (!response.ok) {
-                const errorData = await response.json().catch(() => null);
-                const errorMessage = errorData?.error?.message || `API validation failed (${response.status}). Please try again.`;
-                throw new Error(errorMessage);
-            }
-        }
-
-        async function validateGoogleKey(key, model) {
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`, {
-                method: 'GET',
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            });
-
-            if (response.status === 400) {
-                throw new Error('Invalid API key. Please check your Google API key and try again.');
-            } else if (response.status === 429) {
-                throw new Error('Rate limit exceeded. Your API key is valid but you\'ve hit the rate limit.');
-            } else if (response.status === 403) {
-                throw new Error('API key does not have access to the required model.');
-            } else if (!response.ok) {
-                const error = await response.json();
-                throw new Error(error.error.message || `API validation failed (${response.status}). Please try again.`);
-            }
-        }
 
 
         function handleKeyPress(event) {
@@ -662,7 +585,7 @@ Be ready to start playing once you receive the images!`;
             chatInput.disabled = processing;
             if (processing) {
                 sendButton.textContent = 'Sending...';
-            } else {`You are a helpful AI assistant playing a game of "Guess Who" with the user. Be engaging and fun while helping them play the game.`
+            } else {
                 sendButton.textContent = 'Send';
             }
         }
@@ -707,555 +630,6 @@ Be ready to start playing once you receive the images!`;
                 required: ['characterName']
             }
         };
-
-        async function callOpenAI(message, isFirstMessage = false) {
-            const messages = [];
-            
-            // Always add system message
-            messages.push({
-                role: 'system',
-                content: GAME_SYSTEM_PROMPT
-            });
-            
-            if (isFirstMessage) {
-                // Add user message with board image and opponent character image
-                const firstUserMessage = {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Let's play Guess Who! Here's the game board and your character. ${message}`
-                        },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:image/png;base64,${await getImageAsBase64('./full-board.png')}`
-                            }
-                        },
-                        {
-                            type: 'image_url',
-                            image_url: {
-                                url: `data:image/png;base64,${await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)}`
-                            }
-                        }
-                    ]
-                };
-                messages.push(firstUserMessage);
-                // Store in conversation history
-                conversationHistory.push(firstUserMessage);
-            } else {
-                // Add all conversation history
-                messages.push(...conversationHistory);
-                
-                // Add current user message
-                const currentUserMessage = {
-                    role: 'user',
-                    content: message
-                };
-                messages.push(currentUserMessage);
-                // Store in conversation history
-                conversationHistory.push(currentUserMessage);
-            }
-
-            const params = {
-                model: currentModel,
-                messages: messages,
-                tools: [
-                    {
-                        type: 'function',
-                        function: ELIMINATE_CHARACTER_FUNCTION
-                    }
-                ],
-                tool_choice: 'auto',
-                stream: true
-            };
-
-            const response = await fetch('https://api.openai.com/v1/chat/completions', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${apiKeys.openai}`
-                },
-                body: JSON.stringify(params)
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Invalid API key. Please check your OpenAI API key.');
-                } else if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please try again later.');
-                } else {
-                    throw new Error(`API request failed: ${response.status}`);
-                }
-            }
-
-            return response;
-        }
-
-        async function callAnthropic(message, isFirstMessage = false) {
-            const messages = [];
-            
-            if (isFirstMessage) {
-                // Add user message with images for Anthropic
-                const firstUserMessage = {
-                    role: 'user',
-                    content: [
-                        {
-                            type: 'text',
-                            text: `Let's play Guess Who! Here's the game board and your character. ${message}`
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: await getImageAsBase64('./full-board.png')
-                            }
-                        },
-                        {
-                            type: 'image',
-                            source: {
-                                type: 'base64',
-                                media_type: 'image/png',
-                                data: await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)
-                            }
-                        }
-                    ]
-                };
-                messages.push(firstUserMessage);
-                // Store in conversation history (without images for subsequent messages)
-                conversationHistory.push({
-                    role: 'user',
-                    content: `Let's play Guess Who! Here's the game board and your character. ${message}`
-                });
-            } else {
-                // Add all conversation history
-                messages.push(...conversationHistory);
-                
-                // Add current user message
-                const currentUserMessage = {
-                    role: 'user',
-                    content: message
-                };
-                messages.push(currentUserMessage);
-                // Store in conversation history
-                conversationHistory.push(currentUserMessage);
-            }
-
-            const response = await fetch('https://api.anthropic.com/v1/messages', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'x-api-key': apiKeys.anthropic,
-                    'anthropic-version': '2023-06-01',
-                    'anthropic-dangerous-direct-browser-access': 'true'
-                },
-                body: JSON.stringify({
-                    model: currentModel,
-                    system: GAME_SYSTEM_PROMPT,
-                    messages: messages,
-                    tools: [
-                        {
-                            name: 'eliminateCharacter',
-                            description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
-                            input_schema: {
-                                type: 'object',
-                                properties: {
-                                    characterName: {
-                                        type: 'string',
-                                        description: 'The exact name of the character to eliminate from the board',
-                                        enum: characters
-                                    }
-                                },
-                                required: ['characterName']
-                            }
-                        }
-                    ],
-                    stream: true,
-                    max_tokens: 1000
-                })
-            });
-
-            if (!response.ok) {
-                if (response.status === 401) {
-                    throw new Error('Invalid API key. Please check your Anthropic API key.');
-                } else if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please try again later.');
-                } else {
-                    throw new Error(`API request failed: ${response.status}`);
-                }
-            }
-
-            return response;
-        }
-
-        async function callGemini(message, isFirstMessage = false) {
-            const contents = [];
-            
-            if (isFirstMessage) {
-                // Add user message with images for Gemini
-                const firstUserMessage = {
-                    role: 'user',
-                    parts: [
-                        { text: `${GAME_SYSTEM_PROMPT}\n\nLet's play Guess Who! Here's the game board and your character. ${message}` },
-                        {
-                            inlineData: {
-                                mimeType: 'image/png',
-                                data: await getImageAsBase64('./full-board.png')
-                            }
-                        },
-                        {
-                            inlineData: {
-                                mimeType: 'image/png',
-                                data: await getImageAsBase64(`./guess-who-people/${gameState.opponentChosenCharacter}.png`)
-                            }
-                        }
-                    ]
-                };
-                contents.push(firstUserMessage);
-                // Store in conversation history (text only for subsequent messages)
-                conversationHistory.push({
-                    role: 'user',
-                    parts: [{ text: `Let's play Guess Who! Here's the game board and your character. ${message}` }]
-                });
-            } else {
-                // Add all conversation history
-                contents.push(...conversationHistory);
-                
-                // Add current user message
-                const currentUserMessage = {
-                    role: 'user',
-                    parts: [{ text: message }]
-                };
-                contents.push(currentUserMessage);
-                // Store in conversation history
-                conversationHistory.push(currentUserMessage);
-            }
-
-            const response = await fetch(`https://generativelanguage.googleapis.com/v1/models/${currentModel}:streamGenerateContent?key=${apiKeys.google}`, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json'
-                },
-                body: JSON.stringify({
-                    contents: contents,
-                    tools: [
-                        {
-                            functionDeclarations: [
-                                {
-                                    name: 'eliminateCharacter',
-                                    description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
-                                    parameters: {
-                                        type: 'object',
-                                        properties: {
-                                            characterName: {
-                                                type: 'string',
-                                                description: 'The exact name of the character to eliminate from the board',
-                                                enum: characters
-                                            }
-                                        },
-                                        required: ['characterName']
-                                    }
-                                }
-                            ]
-                        }
-                    ],
-                    generationConfig: {
-                    }
-                })
-            });
-
-            if (!response.ok) {
-                if (response.status === 400) {
-                    throw new Error('Invalid API key. Please check your Google API key.');
-                } else if (response.status === 429) {
-                    throw new Error('Rate limit exceeded. Please try again later.');
-                } else {
-                    const error = await response.json();
-                    throw new Error(error.error.message || `API request failed: ${response.status}`);
-                }
-            }
-
-            return response;
-        }
-
-        async function streamOpenAIResponse(response, messageElement) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullResponse = '';
-            let toolCalls = [];
-            let currentToolCall = null;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-                        
-                        try {
-                            const parsed = JSON.parse(data);
-                            const delta = parsed.choices[0].delta;
-                            
-                            // Handle regular content
-                            if (delta && delta.content) {
-                                fullResponse += delta.content;
-                                messageElement.textContent = fullResponse;
-                                chatMessages.scrollTop = chatMessages.scrollHeight;
-                            }
-                            
-                            // Handle tool calls
-                            if (delta && delta.tool_calls) {
-                                for (const toolCallDelta of delta.tool_calls) {
-                                    const index = toolCallDelta.index;
-                                    
-                                    // Initialize tool call if needed
-                                    if (!toolCalls[index]) {
-                                        toolCalls[index] = {
-                                            id: '',
-                                            type: 'function',
-                                            function: { name: '', arguments: '' }
-                                        };
-                                    }
-                                    
-                                    // Update tool call
-                                    if (toolCallDelta.id) {
-                                        toolCalls[index].id += toolCallDelta.id;
-                                    }
-                                    if (toolCallDelta.function) {
-                                        if (toolCallDelta.function.name) {
-                                            toolCalls[index].function.name += toolCallDelta.function.name;
-                                        }
-                                        if (toolCallDelta.function.arguments) {
-                                            toolCalls[index].function.arguments += toolCallDelta.function.arguments;
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                        }
-                    }
-                }
-            }
-
-            // Execute any tool calls
-            for (const toolCall of toolCalls) {
-                if (toolCall.function.name === 'eliminateCharacter') {
-                    try {
-                        const args = JSON.parse(toolCall.function.arguments);
-                        const result = eliminateCharacter(args.characterName);
-                        
-                        messageElement.textContent = fullResponse;
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    } catch (e) {
-                        console.error('Error executing tool call:', e);
-                    }
-                }
-            }
-
-            return { 
-                response: fullResponse, 
-                hasToolCalls: toolCalls.length > 0 
-            };
-        }
-
-        async function streamAnthropicResponse(response, messageElement) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullResponse = '';
-            let toolCalls = [];
-            let currentToolCall = null;
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-                        
-                        try {
-                            const parsed = JSON.parse(data);
-                            
-                            // Handle regular text content
-                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
-                                fullResponse += parsed.delta.text;
-                                messageElement.textContent = fullResponse;
-                                chatMessages.scrollTop = chatMessages.scrollHeight;
-                            }
-                            
-                            // Handle tool use start
-                            if (parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use') {
-                                currentToolCall = {
-                                    id: parsed.content_block.id,
-                                    name: parsed.content_block.name,
-                                    input: ''
-                                };
-                            }
-                            
-                            // Handle tool use input delta
-                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.partial_json && currentToolCall) {
-                                currentToolCall.input += parsed.delta.partial_json;
-                            }
-                            
-                            // Handle tool use end
-                            if (parsed.type === 'content_block_stop' && currentToolCall) {
-                                toolCalls.push(currentToolCall);
-                                currentToolCall = null;
-                            }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks
-                        }
-                    }
-                }
-            }
-
-            // Execute any tool calls
-            for (const toolCall of toolCalls) {
-                if (toolCall.name === 'eliminateCharacter') {
-                    try {
-                        const args = JSON.parse(toolCall.input);
-                        const result = eliminateCharacter(args.characterName);
-                        
-                        // Add visual feedback to chat
-                        // if (result.success) {
-                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
-                        // } else {
-                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
-                        // }
-                        messageElement.textContent = fullResponse;
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    } catch (e) {
-                        console.error('Error executing tool call:', e);
-                    }
-                }
-            }
-
-            return { 
-                response: fullResponse, 
-                hasToolCalls: toolCalls.length > 0 
-            };
-        }
-
-        async function streamGeminiResponse(response, messageElement) {
-            const reader = response.body.getReader();
-            const decoder = new TextDecoder();
-            let fullResponse = '';
-            let buffer = '';
-            let toolCalls = [];
-
-            while (true) {
-                const { done, value } = await reader.read();
-                if (done) break;
-
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
-
-                // Split by newlines but keep incomplete JSON objects in buffer
-                const parts = buffer.split('\n');
-                buffer = parts.pop() || ''; // Keep the last incomplete part
-
-                for (const part of parts) {
-                    const trimmed = part.trim();
-                    if (trimmed && trimmed !== ',' && trimmed !== '[' && trimmed !== ']') {
-                        // Remove trailing comma if present
-                        const cleanJson = trimmed.endsWith(',') ? trimmed.slice(0, -1) : trimmed;
-                        
-                        try {
-                            const parsed = JSON.parse(cleanJson);
-                            if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
-                                const content = parsed.candidates[0].content;
-                                
-                                if (content.parts) {
-                                    for (const part of content.parts) {
-                                        // Handle text content
-                                        if (part.text) {
-                                            fullResponse += part.text;
-                                            messageElement.textContent = fullResponse;
-                                            chatMessages.scrollTop = chatMessages.scrollHeight;
-                                        }
-                                        
-                                        // Handle function calls
-                                        if (part.functionCall) {
-                                            toolCalls.push(part.functionCall);
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            // Ignore parsing errors for incomplete chunks or structural elements
-                        }
-                    }
-                }
-            }
-
-            // Process any remaining buffer content
-            if (buffer.trim()) {
-                const cleanJson = buffer.trim().endsWith(',') ? buffer.trim().slice(0, -1) : buffer.trim();
-                if (cleanJson && cleanJson !== ',' && cleanJson !== '[' && cleanJson !== ']') {
-                    try {
-                        const parsed = JSON.parse(cleanJson);
-                        if (parsed.candidates && parsed.candidates[0] && parsed.candidates[0].content) {
-                            const content = parsed.candidates[0].content;
-                            
-                            if (content.parts) {
-                                for (const part of content.parts) {
-                                    // Handle text content
-                                    if (part.text) {
-                                        fullResponse += part.text;
-                                        messageElement.textContent = fullResponse;
-                                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                                    }
-                                    
-                                    // Handle function calls
-                                    if (part.functionCall) {
-                                        toolCalls.push(part.functionCall);
-                                    }
-                                }
-                            }
-                        }
-                    } catch (e) {
-                        // Ignore final parsing errors
-                    }
-                }
-            }
-
-            // Execute any tool calls
-            for (const toolCall of toolCalls) {
-                if (toolCall.name === 'eliminateCharacter') {
-                    try {
-                        const args = toolCall.args;
-                        const result = eliminateCharacter(args.characterName);
-                        
-                        // Add visual feedback to chat
-                        // if (result.success) {
-                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
-                        // } else {
-                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
-                        // }
-                        messageElement.textContent = fullResponse;
-                        chatMessages.scrollTop = chatMessages.scrollHeight;
-                    } catch (e) {
-                        console.error('Error executing tool call:', e);
-                    }
-                }
-            }
-
-            return { 
-                response: fullResponse, 
-                hasToolCalls: toolCalls.length > 0 
-            };
-        }
 
         async function callAI(message) {
             console.log('callAI called with:', { message, currentProvider, hasApiKey: !!apiKeys[currentProvider] });
@@ -1521,6 +895,81 @@ Be ready to start playing once you receive the images!`;
             console.log(`Opponent's character: ${gameState.opponentChosenCharacter} (hidden)`);
         }
 
+        async function generateInitialGreeting() {
+            try {
+                // Check if we have a valid provider and API key
+                if (!apiKeys[currentProvider]) {
+                    console.log('No API key available for initial greeting');
+                    showApiKeyModal();
+                    return;
+                }
+
+                const provider = providers[currentProvider];
+                if (!provider) {
+                    console.error('Provider not available:', currentProvider);
+                    addMessage('Error: AI provider not available. Please check your configuration.', false);
+                    return;
+                }
+
+                // Create a simple prompt to generate the greeting
+                const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user you're ready to play and ask them for their first question. Keep it conversational and under 2 sentences.";
+                
+                // Create conversation history with system prompt and greeting request
+                const conversationHistory = [{
+                    role: 'system',
+                    content: GAME_SYSTEM_PROMPT
+                }, {
+                    role: 'user',
+                    content: greetingPrompt
+                }];
+
+                console.log('Generating initial greeting (canary test)...');
+                
+                // Show typing indicator
+                const typingIndicator = showTypingIndicator();
+
+                try {
+                    const response = await provider.callAPI(greetingPrompt, currentModel, conversationHistory);
+                    
+                    // Remove typing indicator
+                    if (typingIndicator && typingIndicator.parentNode) {
+                        typingIndicator.remove();
+                    }
+                    
+                    // Create message element and stream the response
+                    const greetingMessageElement = document.createElement('div');
+                    greetingMessageElement.className = 'message gpt-message';
+                    greetingMessageElement.textContent = '';
+                    chatMessages.appendChild(greetingMessageElement);
+
+                    const result = await provider.streamResponse(response, greetingMessageElement);
+                    console.log('Initial greeting generated successfully (canary passed)');
+                    
+                } catch (error) {
+                    console.error('Canary test failed - could not generate initial greeting:', error);
+                    
+                    // Remove typing indicator if still present
+                    if (typingIndicator && typingIndicator.parentNode) {
+                        typingIndicator.remove();
+                    }
+                    
+                    // Show error message and prompt for API key setup
+                    addMessage(`Unable to connect to AI service: ${error.message}`, false);
+                    
+                    if (error.message.includes('Invalid API key')) {
+                        apiKeys[currentProvider] = null;
+                        localStorage.removeItem(`${currentProvider}-api-key`);
+                        updateApiKeyStatus();
+                        showApiKeyModal();
+                    }
+                }
+
+            } catch (error) {
+                console.error('Error in generateInitialGreeting:', error);
+                addMessage('Error starting the game. Please check your AI configuration.', false);
+            }
+        }
+
         async function loadGameBoard() {
             try {
                 // Reset game state
@@ -1553,6 +1002,9 @@ Be ready to start playing once you receive the images!`;
                 // Clear chat messages for new game
                 chatMessages.innerHTML = '';
 
+                // Generate initial LLM greeting message as a "canary" test
+                await generateInitialGreeting();
+
                 // Show both grids and hide loading
                 loadingBoard.style.display = 'none';
                 cardsGrid.style.display = 'grid';
@@ -1582,17 +1034,25 @@ Be ready to start playing once you receive the images!`;
         }
 
         // Initialize the app
-        updateApiKeyStatus();
-        updateModelIndicator();
-        updateKeyStatusIndicators();
-        
-        // Load the game board
-        loadGameBoard();
-        setupPasswordToggle();
+        async function initializeApp() {
+            // Load default system prompt first
+            await loadDefaultSystemPrompt();
+            
+            updateApiKeyStatus();
+            updateModelIndicator();
+            updateKeyStatusIndicators();
+            
+            // Load the game board
+            loadGameBoard();
+            setupPasswordToggle();
 
-        if (!apiKeys[currentProvider]) {
-            showApiKeyModal();
+            if (!apiKeys[currentProvider]) {
+                showApiKeyModal();
+            }
         }
+        
+        // Start the app
+        initializeApp();
     </script>
 </body>
 </html>
