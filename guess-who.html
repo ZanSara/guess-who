@@ -4,1072 +4,19 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Guess Who</title>
-    <style>
-        * {
-            box-sizing: border-box;
-        }
-        
-        body {
-            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
-            margin: 0;
-            padding: 0;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            min-height: 100vh;
-            color: #333;
-        }
-        
-        header {
-            background: rgba(255, 255, 255, 0.1);
-            backdrop-filter: blur(10px);
-            color: white;
-            padding: 1.5rem;
-            text-align: center;
-            width: 100%;
-            border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-        }
-        
-        header h1 {
-            margin: 0;
-            font-size: 2rem;
-            font-weight: 600;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .game-container {
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            margin: 2rem 0;
-            width: 90%;
-            max-width: 800px;
-        }
-        
-        .chosen-characters {
-            display: flex;
-            justify-content: space-between;
-            width: 100%;
-            margin-bottom: 2rem;
-            gap: 2rem;
-        }
-        
-        .chosen-character {
-            flex: 1;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-            text-align: center;
-        }
-        
-        .chosen-character h3 {
-            margin: 0 0 1rem 0;
-            color: #333;
-            font-size: 1.25rem;
-            font-weight: 600;
-        }
-        
-        .chosen-card {
-            width: 120px;
-            height: 160px;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.2);
-            margin: 0 auto;
-            position: relative;
-            background: white;
-            transition: all 0.3s ease;
-        }
-        
-        .chosen-card:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.3);
-        }
-        
-        .chosen-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-        }
-        
-        .chosen-card.face-down {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            color: white;
-            font-size: 3rem;
-            font-weight: bold;
-            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .chosen-card.face-down::before {
-            content: '?';
-        }
-        
-        
-        .board {
-            width: 100%;
-            min-height: 500px;
-            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
-            margin-bottom: 2rem;
-            border-radius: 15px;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(4px);
-            padding: 1rem;
-        }
-        
-        .cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(90px, 1fr));
-            gap: 0.5rem 0.5rem;
-            justify-items: center;
-            align-items: center;
-            max-width: 100%;
-        }
-        
-        .character-card {
-            width: 90px;
-            height: 120px;
-            border-radius: 8px;
-            overflow: hidden;
-            box-shadow: 0 3px 10px rgba(0, 0, 0, 0.2);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            position: relative;
-            background: white;
-        }
-        
-        .character-card:hover {
-            transform: translateY(-5px) scale(1.05);
-            box-shadow: 0 8px 25px rgba(0, 0, 0, 0.3);
-        }
-        
-        .character-card.eliminated {
-            opacity: 0.3;
-            filter: grayscale(100%);
-            transform: scale(0.9);
-        }
-        
-        .character-card.eliminated:hover {
-            transform: scale(0.95);
-        }
-
-        .llm-board {
-            width: 100%;
-            min-height: 400px;
-            background: linear-gradient(135deg, #e8f5e8 0%, #d4e6d4 100%);
-            margin-top: 2rem;
-            border-radius: 15px;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-            box-shadow: 0 8px 32px rgba(76, 175, 80, 0.15);
-            backdrop-filter: blur(4px);
-            padding: 1rem;
-        }
-
-        .llm-board-header {
-            text-align: center;
-            margin-bottom: 1rem;
-            padding-bottom: 1rem;
-            border-bottom: 2px solid rgba(76, 175, 80, 0.2);
-        }
-
-        .llm-board-header h3 {
-            margin: 0;
-            color: #2e7d32;
-            font-size: 1.5rem;
-            font-weight: 600;
-            text-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
-        }
-
-        .llm-board-header p {
-            margin: 0.5rem 0 0 0;
-            color: #4caf50;
-            font-size: 0.9rem;
-            font-style: italic;
-        }
-
-        .system-prompt-button {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            color: white;
-            border: none;
-            border-radius: 50%;
-            width: 60px;
-            height: 60px;
-            font-size: 24px;
-            cursor: pointer;
-            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.3);
-            transition: all 0.3s ease;
-            z-index: 999;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-
-        .system-prompt-button:hover {
-            transform: translateY(-3px) scale(1.1);
-            box-shadow: 0 8px 25px rgba(255, 152, 0, 0.4);
-        }
-
-        .system-prompt-button:active {
-            transform: translateY(-1px);
-        }
-
-        .system-prompt-modal {
-            display: none;
-            position: fixed;
-            z-index: 2000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.7);
-            backdrop-filter: blur(8px);
-            animation: fadeIn 0.3s ease;
-        }
-
-        .system-prompt-modal-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 90%;
-            max-width: 800px;
-            max-height: 80vh;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.2);
-            animation: slideIn 0.3s ease;
-            display: flex;
-            flex-direction: column;
-        }
-
-        .system-prompt-modal h2 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: #333;
-            font-size: 1.8rem;
-            font-weight: 600;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-
-        .system-prompt-modal h2::before {
-            content: '⚙️';
-            font-size: 1.5rem;
-        }
-
-        .system-prompt-textarea {
-            width: 100%;
-            height: 400px;
-            padding: 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            font-family: 'SF Mono', Monaco, 'Cascadia Code', 'Roboto Mono', Consolas, 'Courier New', monospace;
-            font-size: 0.9rem;
-            line-height: 1.5;
-            resize: vertical;
-            outline: none;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
-            margin-bottom: 1.5rem;
-        }
-
-        .system-prompt-textarea:focus {
-            border-color: #ff9800;
-            box-shadow: 0 0 0 3px rgba(255, 152, 0, 0.1);
-            background: white;
-        }
-
-        .system-prompt-actions {
-            display: flex;
-            gap: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .system-prompt-actions button {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            flex: 1;
-            min-width: 120px;
-        }
-
-        .save-prompt-btn {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-        }
-
-        .save-prompt-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.4);
-        }
-
-        .reset-prompt-btn {
-            background: linear-gradient(135deg, #ff9800 0%, #f57c00 100%);
-            color: white;
-            box-shadow: 0 4px 15px rgba(255, 152, 0, 0.3);
-        }
-
-        .reset-prompt-btn:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(255, 152, 0, 0.4);
-        }
-
-        .cancel-prompt-btn {
-            background: #6c757d;
-            color: white;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-        }
-
-        .cancel-prompt-btn:hover {
-            background: #545b62;
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
-        }
-
-        .llm-cards-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(70px, 1fr));
-            gap: 0.4rem 0.4rem;
-            justify-items: center;
-            align-items: center;
-            max-width: 100%;
-        }
-
-        .llm-character-card {
-            width: 70px;
-            height: 93px;
-            border-radius: 6px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(76, 175, 80, 0.2);
-            transition: all 0.3s ease;
-            position: relative;
-            background: white;
-            border: 2px solid transparent;
-        }
-
-        .llm-character-card:hover {
-            transform: translateY(-3px) scale(1.05);
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
-            border-color: #4caf50;
-        }
-
-        .llm-character-card.eliminated {
-            opacity: 0.2;
-            filter: grayscale(100%) brightness(0.7);
-            transform: scale(0.85);
-            border-color: #ff5722;
-        }
-
-        .llm-character-card.eliminated:hover {
-            transform: scale(0.9);
-            border-color: #ff5722;
-        }
-
-        .llm-character-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-        }
-
-        .loading-llm-board {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 300px;
-            font-size: 1.1rem;
-            color: #4caf50;
-            font-weight: 500;
-        }
-        
-        .character-card img {
-            width: 100%;
-            height: 100%;
-            object-fit: cover;
-            object-position: center;
-        }
-        
-        .loading-board {
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            min-height: 500px;
-            font-size: 1.2rem;
-            color: #666;
-            font-weight: 500;
-        }
-        
-        @media (max-width: 768px) {
-            .cards-grid {
-                grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-                gap: 0.25rem 0.25rem;
-            }
-            
-            .character-card {
-                width: 75px;
-                height: 100px;
-            }
-        }
-        
-        .chat-container {
-            width: 100%;
-            background: rgba(255, 255, 255, 0.95);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            border-radius: 20px;
-            padding: 1.5rem;
-            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            backdrop-filter: blur(10px);
-        }
-        
-        .chat-messages {
-            height: 300px;
-            overflow-y: auto;
-            margin-bottom: 1.5rem;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-radius: 15px;
-            padding: 1rem;
-            background: #fafafa;
-            scrollbar-width: thin;
-            scrollbar-color: #cbd5e0 transparent;
-            display: flex;
-            flex-direction: column;
-        }
-        
-        .chat-messages::-webkit-scrollbar {
-            width: 6px;
-        }
-        
-        .chat-messages::-webkit-scrollbar-track {
-            background: transparent;
-        }
-        
-        .chat-messages::-webkit-scrollbar-thumb {
-            background: #cbd5e0;
-            border-radius: 3px;
-        }
-        
-        .chat-messages::-webkit-scrollbar-thumb:hover {
-            background: #a0aec0;
-        }
-        
-        .chat-input {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        
-        .chat-input input {
-            flex: 1;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 25px;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-            background: white;
-        }
-        
-        .chat-input input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .chat-input button {
-            padding: 0.75rem 1.5rem;
-            border: none;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            border-radius: 25px;
-            cursor: pointer;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .chat-input button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .chat-input button:active {
-            transform: translateY(0);
-        }
-        .modal {
-            display: none;
-            position: fixed;
-            z-index: 1000;
-            left: 0;
-            top: 0;
-            width: 100%;
-            height: 100%;
-            overflow: auto;
-            background-color: rgba(0, 0, 0, 0.6);
-            backdrop-filter: blur(5px);
-            animation: fadeIn 0.3s ease;
-        }
-        
-        @keyframes fadeIn {
-            from { opacity: 0; }
-            to { opacity: 1; }
-        }
-        
-        @keyframes slideIn {
-            from { 
-                opacity: 0;
-                transform: translate(-50%, -60%);
-            }
-            to { 
-                opacity: 1;
-                transform: translate(-50%, -50%);
-            }
-        }
-        
-        .modal-content {
-            background: rgba(255, 255, 255, 0.95);
-            backdrop-filter: blur(20px);
-            position: absolute;
-            left: 50%;
-            top: 50%;
-            transform: translate(-50%, -50%);
-            padding: 2rem;
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            width: 90%;
-            max-width: 450px;
-            border-radius: 20px;
-            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
-            animation: slideIn 0.3s ease;
-        }
-        
-        .modal h2 {
-            margin-top: 0;
-            margin-bottom: 1rem;
-            color: #333;
-            font-size: 1.5rem;
-            font-weight: 600;
-        }
-        
-        .modal p {
-            color: #666;
-            margin-bottom: 1.5rem;
-            line-height: 1.5;
-        }
-        
-        .modal input {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            margin: 0.5rem 0 1.5rem 0;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            box-sizing: border-box;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
-        }
-        
-        .modal input:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-            background: white;
-        }
-        
-        .modal button {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            padding: 0.75rem 1.5rem;
-            border: none;
-            border-radius: 15px;
-            cursor: pointer;
-            margin-right: 0.5rem;
-            font-weight: 600;
-            font-size: 1rem;
-            transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .modal button:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.4);
-        }
-        
-        .modal button:last-child {
-            background: #6c757d;
-            box-shadow: 0 4px 15px rgba(108, 117, 125, 0.3);
-        }
-        
-        .modal button:last-child:hover {
-            background: #545b62;
-            box-shadow: 0 6px 20px rgba(108, 117, 125, 0.4);
-        }
-        
-        .error-message {
-            background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            font-size: 0.875rem;
-            box-shadow: 0 4px 15px rgba(244, 67, 54, 0.3);
-            animation: slideIn 0.3s ease;
-        }
-        
-        .success-message {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            padding: 0.75rem 1rem;
-            border-radius: 10px;
-            margin: 1rem 0;
-            font-size: 0.875rem;
-            box-shadow: 0 4px 15px rgba(76, 175, 80, 0.3);
-            animation: slideIn 0.3s ease;
-        }
-        
-        .api-key-status {
-            position: fixed;
-            top: 20px;
-            right: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            color: #333;
-            padding: 0.75rem 1rem;
-            border-radius: 15px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .api-key-status:hover {
-            transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.15);
-            background: rgba(255, 255, 255, 0.95);
-        }
-        
-        .api-key-status:active {
-            transform: translateY(0);
-        }
-        
-        .api-key-status.set {
-            background: linear-gradient(135deg, #4caf50 0%, #45a049 100%);
-            color: white;
-            border: 1px solid rgba(76, 175, 80, 0.3);
-        }
-        
-        .api-key-status.set:hover {
-            box-shadow: 0 6px 20px rgba(76, 175, 80, 0.3);
-        }
-        
-        .api-key-status.not-set {
-            background: linear-gradient(135deg, #f44336 0%, #e53935 100%);
-            color: white;
-            border: 1px solid rgba(244, 67, 54, 0.3);
-        }
-        
-        .api-key-status.not-set:hover {
-            box-shadow: 0 6px 20px rgba(244, 67, 54, 0.3);
-        }
-        
-        .model-indicator {
-            position: fixed;
-            top: 20px;
-            left: 20px;
-            background: rgba(255, 255, 255, 0.9);
-            backdrop-filter: blur(10px);
-            color: #333;
-            padding: 0.75rem 1rem;
-            border-radius: 15px;
-            font-size: 0.875rem;
-            font-weight: 500;
-            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.1);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-            transition: all 0.3s ease;
-        }
-        
-        .provider-selection {
-            display: flex;
-            gap: 1rem;
-            margin: 1rem 0;
-        }
-        
-        .provider-option {
-            flex: 1;
-            padding: 0.75rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            cursor: pointer;
-            text-align: center;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
-            position: relative;
-        }
-        
-        .provider-option.active {
-            border-color: #667eea;
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-        }
-        
-        .provider-option:hover {
-            border-color: #667eea;
-            transform: translateY(-2px);
-        }
-        
-        .provider-option .key-status {
-            position: absolute;
-            top: 5px;
-            right: 5px;
-            width: 8px;
-            height: 8px;
-            border-radius: 50%;
-            background: #f44336;
-        }
-        
-        .provider-option .key-status.has-key {
-            background: #4caf50;
-        }
-        
-        .api-key-section {
-            display: none;
-            margin: 1rem 0;
-            padding: 1rem;
-            border: 1px solid #e2e8f0;
-            border-radius: 15px;
-            background: rgba(255, 255, 255, 0.5);
-        }
-        
-        .api-key-section h4 {
-            margin: 0 0 0.5rem 0;
-            color: #333;
-            font-size: 1rem;
-        }
-        
-        .api-key-section.current {
-            display: block;
-            border-color: #667eea;
-            background: rgba(102, 126, 234, 0.05);
-        }
-        
-        .key-input-group {
-            display: flex;
-            gap: 0.5rem;
-            align-items: center;
-        }
-        
-        .key-input-group input {
-            flex: 1;
-        }
-
-        .key-input-wrapper {
-            position: relative;
-            flex: 1;
-            display: flex;
-            align-items: center;
-        }
-
-        .key-input-wrapper input {
-            width: 100%;
-            padding-right: 2.5rem;
-        }
-
-        .toggle-password {
-            position: absolute;
-            right: 0.75rem;
-            top: 50%;
-            transform: translateY(-50%);
-            cursor: pointer;
-            user-select: none;
-        }
-        
-        .validate-btn {
-            padding: 0.5rem 1rem;
-            border: 1px solid #667eea;
-            background: white;
-            color: #667eea;
-            border-radius: 10px;
-            cursor: pointer;
-            font-size: 0.875rem;
-            transition: all 0.3s ease;
-            white-space: nowrap;
-        }
-        
-        .validate-btn:hover {
-            background: #667eea;
-            color: white;
-        }
-        
-        .validate-btn:disabled {
-            opacity: 0.5;
-            cursor: not-allowed;
-        }
-        
-        .key-status-text {
-            font-size: 0.875rem;
-            margin-top: 0.5rem;
-            padding: 0.5rem;
-            border-radius: 8px;
-        }
-        
-        .key-status-text.valid {
-            background: rgba(76, 175, 80, 0.1);
-            color: #2e7d32;
-        }
-        
-        .key-status-text.invalid {
-            background: rgba(244, 67, 54, 0.1);
-            color: #c62828;
-        }
-        
-        .key-status-text.testing {
-            background: rgba(255, 193, 7, 0.1);
-            color: #f57c00;
-        }
-        
-        .model-selection {
-            margin: 1rem 0;
-        }
-        
-        .model-selection select {
-            width: 100%;
-            padding: 0.75rem 1rem;
-            border: 2px solid #e2e8f0;
-            border-radius: 15px;
-            font-size: 1rem;
-            outline: none;
-            transition: all 0.3s ease;
-            background: rgba(255, 255, 255, 0.8);
-        }
-        
-        .model-selection select:focus {
-            border-color: #667eea;
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
-        
-        .message {
-            margin: 0.75rem 0;
-            padding: 0.75rem 1rem;
-            border-radius: 18px;
-            max-width: 80%;
-            word-wrap: break-word;
-            animation: slideUp 0.3s ease;
-            line-height: 1.4;
-        }
-        
-        @keyframes slideUp {
-            from {
-                opacity: 0;
-                transform: translateY(10px);
-            }
-            to {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        
-        .user-message {
-            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
-            align-self: flex-end;
-            margin-left: auto;
-            border-bottom-right-radius: 8px;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
-        }
-        
-        .gpt-message {
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            align-self: flex-start;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-bottom-left-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-        }
-        
-        .loading {
-            font-style: italic;
-            color: #666;
-            opacity: 0.8;
-        }
-        
-        .typing-indicator {
-            background: rgba(255, 255, 255, 0.9);
-            color: #333;
-            align-self: flex-start;
-            border: 1px solid rgba(0, 0, 0, 0.1);
-            border-bottom-left-radius: 8px;
-            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.05);
-            margin: 0.75rem 0;
-            padding: 0.75rem 1rem;
-            border-radius: 18px;
-            max-width: 80%;
-            display: flex;
-            align-items: center;
-            gap: 0.5rem;
-        }
-        
-        .typing-dots {
-            display: flex;
-            gap: 0.25rem;
-        }
-        
-        .typing-dot {
-            width: 6px;
-            height: 6px;
-            border-radius: 50%;
-            background: #667eea;
-            animation: typingAnimation 1.4s infinite;
-        }
-        
-        .typing-dot:nth-child(2) {
-            animation-delay: 0.2s;
-        }
-        
-        .typing-dot:nth-child(3) {
-            animation-delay: 0.4s;
-        }
-        
-        @keyframes typingAnimation {
-            0%, 60%, 100% {
-                transform: translateY(0);
-                opacity: 0.4;
-            }
-            30% {
-                transform: translateY(-10px);
-                opacity: 1;
-            }
-        }
-        
-        .chat-input button:disabled {
-            opacity: 0.6;
-            cursor: not-allowed;
-            transform: none !important;
-        }
-        
-        .chat-input button:disabled:hover {
-            transform: none !important;
-            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3) !important;
-        }
-        
-        @media (max-width: 768px) {
-            .game-container {
-                width: 95%;
-                margin: 1rem 0;
-            }
-            
-            .chosen-characters {
-                flex-direction: column;
-                gap: 1rem;
-                margin-bottom: 1.5rem;
-            }
-            
-            .chosen-card {
-                width: 100px;
-                height: 133px;
-            }
-            
-            .chosen-card.face-down {
-                font-size: 2.5rem;
-            }
-            
-            .chat-messages {
-                height: 250px;
-            }
-            
-            .modal-content {
-                width: 95%;
-                padding: 1.5rem;
-            }
-            
-            .api-key-status {
-                position: static;
-                margin: 1rem;
-                text-align: center;
-            }
-            
-            .message {
-                max-width: 90%;
-            }
-            
-            .llm-board {
-                min-height: 350px;
-            }
-            
-            .llm-cards-grid {
-                grid-template-columns: repeat(auto-fill, minmax(60px, 1fr));
-                gap: 0.3rem 0.3rem;
-            }
-            
-            .llm-character-card {
-                width: 60px;
-                height: 80px;
-            }
-            
-            .llm-board-header h3 {
-                font-size: 1.3rem;
-            }
-            
-            .system-prompt-button {
-                bottom: 15px;
-                right: 15px;
-                width: 50px;
-                height: 50px;
-                font-size: 20px;
-            }
-            
-            .system-prompt-modal-content {
-                width: 95%;
-                padding: 1.5rem;
-                max-height: 85vh;
-            }
-            
-            .system-prompt-textarea {
-                height: 300px;
-                font-size: 0.85rem;
-            }
-            
-            .system-prompt-actions {
-                flex-direction: column;
-            }
-            
-            .system-prompt-actions button {
-                min-width: unset;
-            }
-        }
-    </style>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>🧑</text></svg>">
+    <link rel="stylesheet" href="style.css"> 
+    <script src="openai.js"></script>
+    <script src="anthropic.js"></script>
+    <script src="gemini.js"></script>
 </head>
 <body>
     <header>
-        <h1>Guess Who</h1>
+        <h1>Play "Guess Who" with <span class="model-indicator" id="modelIndicator">...</span>!</h1>
     </header>
-    <div class="model-indicator" id="modelIndicator">
-        No Model Selected
-    </div>
     
     <div class="api-key-status" id="apiKeyStatus" onclick="showApiKeyModal()">
-        API Key: Not Set
+        ⚙️
     </div>
 
     <div class="game-container">
@@ -1116,15 +63,13 @@
         </div>
     </div>
 
-    <!-- System Prompt Button -->
-    <button class="system-prompt-button" onclick="showSystemPromptModal()" title="Edit System Prompt">
-        ⚙️
-    </button>
-
     <!-- API Key Modal -->
     <div id="apiKeyModal" class="modal">
         <div class="modal-content">
-            <h2 id="modalTitle">AI Model Configuration</h2>
+            <div class="modal-header">
+                <h2 id="modalTitle">AI Model Configuration</h2>
+                <button class="close-modal" onclick="closeModal()">&times;</button>
+            </div>
             <p id="modalDescription">Choose your AI provider and configure your API keys:</p>
             <div id="modalMessage"></div>
             
@@ -1132,17 +77,14 @@
                 <div class="provider-option active" id="openaiProvider" onclick="selectProvider('openai')">
                     <div class="key-status" id="openaiKeyStatus"></div>
                     <strong>OpenAI</strong><br>
-                    <small>GPT-5, GPT-5 Mini, GPT-5 Nano, GPT-4o</small>
                 </div>
                 <div class="provider-option" id="anthropicProvider" onclick="selectProvider('anthropic')">
                     <div class="key-status" id="anthropicKeyStatus"></div>
                     <strong>Anthropic</strong><br>
-                    <small>Claude Opus 4, Claude Sonnet 4</small>
                 </div>
-                <div class="provider-option" id="googleProvider" onclick="selectProvider('google')">
-                    <div class="key-status" id="googleKeyStatus"></div>
-                    <strong>Google</strong><br>
-                    <small>Gemini 2.5 Pro, 2.5 Flash, 2.5 Flash Lite</small>
+                <div class="provider-option" id="geminiProvider" onclick="selectProvider('gemini')">
+                    <div class="key-status" id="geminiKeyStatus"></div>
+                    <strong>Google Gemini</strong><br>
                 </div>
             </div>
             
@@ -1181,35 +123,31 @@
                 <div class="key-status-text" id="anthropicKeyStatusText" style="display: none;"></div>
             </div>
 
-            <div class="api-key-section" id="googleSection">
-                <h4>Google API Key</h4>
+            <div class="api-key-section" id="geminiSection">
+                <h4>Gemini API Key</h4>
                 <div class="key-input-group">
                     <div class="key-input-wrapper">
-                        <input type="password" id="googleKeyInput" placeholder="AIza..." />
+                        <input type="password" id="geminiKeyInput" placeholder="AIza..." />
                         <span class="toggle-password">👁️</span>
                     </div>
-                    <button class="validate-btn" onclick="validateProviderKey('google')" id="googleValidateBtn">Test Key</button>
+                    <button class="validate-btn" onclick="validateProviderKey('gemini')" id="geminiValidateBtn">Test Key</button>
                 </div>
-                <div class="key-status-text" id="googleKeyStatusText" style="display: none;"></div>
+                <div class="key-status-text" id="geminiKeyStatusText" style="display: none;"></div>
+            </div>
+            
+            <!-- System Prompt Section -->
+            <div class="system-prompt-section">
+                <h3>System Prompt</h3>
+                <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
+                <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
+                <div class="system-prompt-actions">
+                    <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
+                </div>
             </div>
             
             <div>
                 <button onclick="saveConfiguration()" id="saveButton">Save Configuration</button>
                 <button onclick="closeModal()">Cancel</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- System Prompt Modal -->
-    <div id="systemPromptModal" class="system-prompt-modal">
-        <div class="system-prompt-modal-content">
-            <h2>System Prompt Editor</h2>
-            <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
-            <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
-            <div class="system-prompt-actions">
-                <button class="save-prompt-btn" onclick="saveSystemPrompt()">Save Changes</button>
-                <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
-                <button class="cancel-prompt-btn" onclick="closeSystemPromptModal()">Cancel</button>
             </div>
         </div>
     </div>
@@ -1226,31 +164,30 @@
         const modelSelect = document.getElementById('modelSelect');
         const openaiProvider = document.getElementById('openaiProvider');
         const anthropicProvider = document.getElementById('anthropicProvider');
-        const googleProvider = document.getElementById('googleProvider');
+        const geminiProvider = document.getElementById('geminiProvider');
         
         // New elements for multi-key support
         const openaiKeyInput = document.getElementById('openaiKeyInput');
         const anthropicKeyInput = document.getElementById('anthropicKeyInput');
-        const googleKeyInput = document.getElementById('googleKeyInput');
+        const geminiKeyInput = document.getElementById('geminiKeyInput');
         const openaiKeyStatus = document.getElementById('openaiKeyStatus');
         const anthropicKeyStatus = document.getElementById('anthropicKeyStatus');
-        const googleKeyStatus = document.getElementById('googleKeyStatus');
+        const geminiKeyStatus = document.getElementById('geminiKeyStatus');
         const openaiSection = document.getElementById('openaiSection');
         const anthropicSection = document.getElementById('anthropicSection');
-        const googleSection = document.getElementById('googleSection');
+        const geminiSection = document.getElementById('geminiSection');
         const openaiKeyStatusText = document.getElementById('openaiKeyStatusText');
         const anthropicKeyStatusText = document.getElementById('anthropicKeyStatusText');
-        const googleKeyStatusText = document.getElementById('googleKeyStatusText');
+        const geminiKeyStatusText = document.getElementById('geminiKeyStatusText');
         const openaiValidateBtn = document.getElementById('openaiValidateBtn');
         const anthropicValidateBtn = document.getElementById('anthropicValidateBtn');
-        const googleValidateBtn = document.getElementById('googleValidateBtn');
+        const geminiValidateBtn = document.getElementById('geminiValidateBtn');
         
         // Game board elements
         const loadingBoard = document.getElementById('loadingBoard');
         const cardsGrid = document.getElementById('cardsGrid');
         const loadingLLMBoard = document.getElementById('loadingLLMBoard');
         const llmCardsGrid = document.getElementById('llmCardsGrid');
-        const systemPromptModal = document.getElementById('systemPromptModal');
         const systemPromptTextarea = document.getElementById('systemPromptTextarea');
 
         // Default game system prompt
@@ -1285,7 +222,7 @@ Be ready to start playing once you receive the images!`;
         let apiKeys = {
             openai: localStorage.getItem('openai-api-key'),
             anthropic: localStorage.getItem('anthropic-api-key'),
-            google: localStorage.getItem('google-api-key')
+            gemini: localStorage.getItem('gemini-api-key')
         };
         let isProcessing = false;
 
@@ -1305,47 +242,18 @@ Be ready to start playing once you receive the images!`;
             opponentChosenCharacter: null
         };
 
-        // Model configurations
-        const modelConfigs = {
-            openai: {
-                models: [
-                    { value: 'gpt-4o', name: 'GPT-4o' },
-                    { value: 'gpt-4o-mini', name: 'GPT-4o Mini' },
-                    { value: 'gpt-5', name: 'GPT-5' },
-                    { value: 'gpt-5-mini', name: 'GPT-5 Mini' },
-                    { value: 'gpt-5-nano', name: 'GPT-5 Nano' }
-                ],
-                keyPrefix: 'sk-',
-                keyPlaceholder: 'sk-...'
-            },
-            anthropic: {
-                models: [
-                    { value: 'claude-opus-4-1', name: 'Claude 4.1 Opus' },
-                    { value: 'claude-opus-4-0', name: 'Claude 4.0 Opus' },
-                    { value: 'claude-sonnet-4-0', name: 'Claude 4.0 Sonnet' },
-                    { value: 'claude-3-7-sonnet-latest', name: 'Claude 3.7 Sonnet' },
-                ],
-                keyPrefix: 'sk-ant-',
-                keyPlaceholder: 'sk-ant-...'
-            },
-            google: {
-                models: [
-                    { value: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-                    { value: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-                    { value: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' }
-                ],
-                keyPrefix: 'AIza',
-                keyPlaceholder: 'AIza...'
-            }
+        // Initialize AI providers
+        const providers = {
+            openai: new OpenAIProvider(),
+            anthropic: new AnthropicProvider(),
+            gemini: new GeminiProvider()
         };
 
         function updateApiKeyStatus() {
             const hasApiKey = apiKeys[currentProvider];
             if (hasApiKey) {
-                apiKeyStatus.textContent = 'API Key: Set';
                 apiKeyStatus.className = 'api-key-status set';
             } else {
-                apiKeyStatus.textContent = 'API Key: Not Set';
                 apiKeyStatus.className = 'api-key-status not-set';
             }
         }
@@ -1365,19 +273,18 @@ Be ready to start playing once you receive the images!`;
                 anthropicKeyStatus.classList.remove('has-key');
             }
 
-            // Update Google key status indicator
-            if (apiKeys.google) {
-                googleKeyStatus.classList.add('has-key');
+            // Update Gemini key status indicator
+            if (apiKeys.gemini) {
+                geminiKeyStatus.classList.add('has-key');
             } else {
-                googleKeyStatus.classList.remove('has-key');
+                geminiKeyStatus.classList.remove('has-key');
             }
         }
 
         function updateModelIndicator() {
-            const config = modelConfigs[currentProvider];
-            const modelName = config.models.find(m => m.value === currentModel)?.name || currentModel;
-            const providerName = currentProvider.charAt(0).toUpperCase() + currentProvider.slice(1);
-            modelIndicator.textContent = `${providerName}: ${modelName}`;
+            const provider = providers[currentProvider];
+            const modelName = provider.models.find(m => m.value === currentModel)?.name || currentModel;
+            modelIndicator.textContent = modelName;
         }
 
         function selectProvider(provider) {
@@ -1386,13 +293,13 @@ Be ready to start playing once you receive the images!`;
             // Update provider selection UI
             openaiProvider.classList.remove('active');
             anthropicProvider.classList.remove('active');
-            googleProvider.classList.remove('active');
+            geminiProvider.classList.remove('active');
             document.getElementById(provider + 'Provider').classList.add('active');
             
             // Update section highlighting
             openaiSection.classList.remove('current');
             anthropicSection.classList.remove('current');
-            googleSection.classList.remove('current');
+            geminiSection.classList.remove('current');
             document.getElementById(provider + 'Section').classList.add('current');
             
             // Update model dropdown
@@ -1402,10 +309,10 @@ Be ready to start playing once you receive the images!`;
         }
 
         function updateModelDropdown() {
-            const config = modelConfigs[currentProvider];
+            const provider = providers[currentProvider];
             modelSelect.innerHTML = '';
             
-            config.models.forEach(model => {
+            provider.models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.value;
                 option.textContent = model.name;
@@ -1414,17 +321,11 @@ Be ready to start playing once you receive the images!`;
             
             // Set model based on current selection or default
             const savedModel = localStorage.getItem('ai-model');
-            if (savedModel && config.models.some(m => m.value === savedModel)) {
+            if (savedModel && provider.models.some(m => m.value === savedModel)) {
                 currentModel = savedModel;
             } else {
                 // Set default model for provider
-                if (currentProvider === 'openai') {
-                    currentModel = 'gpt-4o';
-                } else if (currentProvider === 'anthropic') {
-                    currentModel = 'claude-3-7-sonnet-latest';
-                } else {
-                    currentModel = 'gemini-2.5-pro';
-                }
+                currentModel = provider.defaultModel;
             }
             modelSelect.value = currentModel;
         }
@@ -1437,8 +338,8 @@ Be ready to start playing once you receive the images!`;
             const modalTitle = document.getElementById('modalTitle');
             const modalDescription = document.getElementById('modalDescription');
             
-            modalTitle.textContent = 'AI Model Configuration';
-            modalDescription.textContent = 'Choose your AI provider and configure your API keys:';
+            modalTitle.textContent = 'Settings';
+            modalDescription.textContent = 'Configure your AI provider, API keys, and system prompt:';
             
             // Set up the modal with current configuration
             selectProvider(currentProvider);
@@ -1451,9 +352,12 @@ Be ready to start playing once you receive the images!`;
             if (apiKeys.anthropic) {
                 anthropicKeyInput.value = apiKeys.anthropic;
             }
-            if (apiKeys.google) {
-                googleKeyInput.value = apiKeys.google;
+            if (apiKeys.gemini) {
+                geminiKeyInput.value = apiKeys.gemini;
             }
+            
+            // Populate system prompt textarea
+            systemPromptTextarea.value = GAME_SYSTEM_PROMPT;
             
             // Update key status indicators
             updateKeyStatusIndicators();
@@ -1478,7 +382,7 @@ Be ready to start playing once you receive the images!`;
         function clearAllKeyStatusTexts() {
             openaiKeyStatusText.style.display = 'none';
             anthropicKeyStatusText.style.display = 'none';
-            googleKeyStatusText.style.display = 'none';
+            geminiKeyStatusText.style.display = 'none';
         }
 
         function showKeyStatus(provider, message, status) {
@@ -1488,7 +392,7 @@ Be ready to start playing once you receive the images!`;
             } else if (provider === 'anthropic') {
                 statusElement = anthropicKeyStatusText;
             } else {
-                statusElement = googleKeyStatusText;
+                statusElement = geminiKeyStatusText;
             }
             statusElement.textContent = message;
             statusElement.className = `key-status-text ${status}`;
@@ -1504,19 +408,19 @@ Be ready to start playing once you receive the images!`;
                 keyInput = anthropicKeyInput;
                 validateBtn = anthropicValidateBtn;
             } else {
-                keyInput = googleKeyInput;
-                validateBtn = googleValidateBtn;
+                keyInput = geminiKeyInput;
+                validateBtn = geminiValidateBtn;
             }
             const key = keyInput.value.trim();
-            const config = modelConfigs[provider];
+            const providerInstance = providers[provider];
 
             if (!key) {
                 showKeyStatus(provider, 'Please enter an API key', 'invalid');
                 return false;
             }
 
-            if (provider !== 'google' && !key.startsWith(config.keyPrefix)) {
-                showKeyStatus(provider, `API key should start with "${config.keyPrefix}"`, 'invalid');
+            if (provider !== 'gemini' && !key.startsWith(providerInstance.keyPrefix)) {
+                showKeyStatus(provider, `API key should start with "${providerInstance.keyPrefix}"`, 'invalid');
                 return false;
             }
 
@@ -1526,15 +430,9 @@ Be ready to start playing once you receive the images!`;
 
             try {
                 // Get a default model for testing
-                const testModel = config.models[0].value;
+                const testModel = providerInstance.models[0].value;
                 
-                if (provider === 'openai') {
-                    await validateOpenAIKey(key, testModel);
-                } else if (provider === 'anthropic') {
-                    await validateAnthropicKey(key, testModel);
-                } else if (provider === 'google') {
-                    await validateGoogleKey(key, testModel);
-                }
+                await providerInstance.validateApiKey(key, testModel);
 
                 showKeyStatus(provider, '✓ API key is valid!', 'valid');
                 return true;
@@ -1551,7 +449,7 @@ Be ready to start playing once you receive the images!`;
         async function saveConfiguration() {
             const openaiKey = openaiKeyInput.value.trim();
             const anthropicKey = anthropicKeyInput.value.trim();
-            const googleKey = googleKeyInput.value.trim();
+            const geminiKey = geminiKeyInput.value.trim();
             
             // Validate that the selected provider has a key
             let selectedProviderKey;
@@ -1560,7 +458,7 @@ Be ready to start playing once you receive the images!`;
             } else if (currentProvider === 'anthropic') {
                 selectedProviderKey = anthropicKey;
             } else {
-                selectedProviderKey = googleKey;
+                selectedProviderKey = geminiKey;
             }
 
             if (!selectedProviderKey) {
@@ -1590,13 +488,23 @@ Be ready to start playing once you receive the images!`;
                     anthropicKeyInput.value = apiKeys.anthropic;
                 }
 
-                // Save Google key if provided
-                if (googleKey) {
-                    apiKeys.google = googleKey;
-                    localStorage.setItem('google-api-key', googleKey);
-                } else if (apiKeys.google) {
+                // Save Gemini key if provided
+                if (geminiKey) {
+                    apiKeys.gemini = geminiKey;
+                    localStorage.setItem('gemini-api-key', geminiKey);
+                } else if (apiKeys.gemini) {
                     // Keep existing key if no new one provided
-                    googleKeyInput.value = apiKeys.google;
+                    geminiKeyInput.value = apiKeys.gemini;
+                }
+
+                // Save system prompt
+                const newPrompt = systemPromptTextarea.value.trim();
+                if (newPrompt) {
+                    GAME_SYSTEM_PROMPT = newPrompt;
+                    localStorage.setItem('custom-system-prompt', newPrompt);
+                } else {
+                    GAME_SYSTEM_PROMPT = DEFAULT_GAME_SYSTEM_PROMPT;
+                    localStorage.removeItem('custom-system-prompt');
                 }
 
                 // Save current provider and model
@@ -2143,12 +1051,6 @@ Be ready to start playing once you receive the images!`;
                         const args = JSON.parse(toolCall.function.arguments);
                         const result = eliminateCharacter(args.characterName);
                         
-                        // Add visual feedback to chat
-                        // if (result.success) {
-                        //     fullResponse += `\n\n*[Eliminated ${args.characterName} from board]*`;
-                        // } else {
-                        //     fullResponse += `\n\n*[Failed to eliminate ${args.characterName}: ${result.message}]*`;
-                        // }
                         messageElement.textContent = fullResponse;
                         chatMessages.scrollTop = chatMessages.scrollHeight;
                     } catch (e) {
@@ -2368,19 +1270,23 @@ Be ready to start playing once you receive the images!`;
             const typingIndicator = showTypingIndicator();
 
             try {
-                let response;
-                
-                console.log('Calling API for provider:', currentProvider);
-                // Call the appropriate API
-                if (currentProvider === 'openai') {
-                    response = await callOpenAI(message, isFirstGameMessage);
-                } else if (currentProvider === 'anthropic') {
-                    response = await callAnthropic(message, isFirstGameMessage);
-                } else if (currentProvider === 'google') {
-                    response = await callGemini(message, isFirstGameMessage);
-                } else {
+                const provider = providers[currentProvider];
+                if (!provider) {
                     throw new Error('Unsupported provider: ' + currentProvider);
                 }
+                
+                console.log('Calling API for provider:', currentProvider);
+                
+                // Add system prompt to conversation history if this is the first message
+                let fullConversationHistory = [...conversationHistory];
+                if (isFirstGameMessage) {
+                    fullConversationHistory.unshift({
+                        role: 'system',
+                        content: GAME_SYSTEM_PROMPT
+                    });
+                }
+                
+                const response = await provider.callAPI(message, currentModel, fullConversationHistory);
                 
                 // After first message, set flag to false
                 isFirstGameMessage = false;
@@ -2398,34 +1304,12 @@ Be ready to start playing once you receive the images!`;
                 chatMessages.appendChild(aiMessageElement);
 
                 // Stream the response
-                let aiResponse = '';
-                let hasToolCalls = false;
-                if (currentProvider === 'openai') {
-                    const result = await streamOpenAIResponse(response, aiMessageElement);
-                    aiResponse = result.response;
-                    hasToolCalls = result.hasToolCalls;
-                } else if (currentProvider === 'anthropic') {
-                    const result = await streamAnthropicResponse(response, aiMessageElement);
-                    aiResponse = result.response;
-                    hasToolCalls = result.hasToolCalls;
-                } else if (currentProvider === 'google') {
-                    const result = await streamGeminiResponse(response, aiMessageElement);
-                    aiResponse = result.response;
-                    hasToolCalls = result.hasToolCalls;
-                }
+                const result = await provider.streamResponse(response, aiMessageElement);
+                const aiResponse = result.response;
+                const hasToolCalls = result.hasToolCalls;
                 
-                // Store AI response in conversation history
-                if (currentProvider === 'openai' || currentProvider === 'anthropic') {
-                    conversationHistory.push({
-                        role: 'assistant',
-                        content: aiResponse
-                    });
-                } else if (currentProvider === 'google') {
-                    conversationHistory.push({
-                        role: 'model',
-                        parts: [{ text: aiResponse }]
-                    });
-                }
+                // Store AI response in conversation history using provider's format
+                conversationHistory.push(provider.formatHistoryMessage('assistant', aiResponse));
 
                 // If the response was only tool calls with no text, prompt again for a conversational response
                 if (hasToolCalls && (!aiResponse || aiResponse.trim() === '')) {
@@ -2435,62 +1319,20 @@ Be ready to start playing once you receive the images!`;
                     const followUpMessage = "Please provide your response or next question.";
                     
                     // Add the follow-up message to conversation history
-                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
-                        conversationHistory.push({
-                            role: 'user',
-                            content: followUpMessage
-                        });
-                    } else if (currentProvider === 'google') {
-                        conversationHistory.push({
-                            role: 'user',
-                            parts: [{ text: followUpMessage }]
-                        });
-                    }
+                    conversationHistory.push(provider.formatHistoryMessage('user', followUpMessage));
                     
-                    let followUpResponse;
-                    if (currentProvider === 'openai') {
-                        followUpResponse = await callOpenAI(followUpMessage, false);
-                    } else if (currentProvider === 'anthropic') {
-                        followUpResponse = await callAnthropic(followUpMessage, false);
-                    } else if (currentProvider === 'google') {
-                        followUpResponse = await callGemini(followUpMessage, false);
-                    }
-
-                    // Stream the follow-up response
-                    let followUpText = '';
-                    if (currentProvider === 'openai') {
-                        const result = await streamOpenAIResponse(followUpResponse, aiMessageElement);
-                        followUpText = result.response;
-                    } else if (currentProvider === 'anthropic') {
-                        const result = await streamAnthropicResponse(followUpResponse, aiMessageElement);
-                        followUpText = result.response;
-                    } else if (currentProvider === 'google') {
-                        const result = await streamGeminiResponse(followUpResponse, aiMessageElement);
-                        followUpText = result.response;
-                    }
+                    const followUpResponse = await provider.callAPI(followUpMessage, currentModel, conversationHistory);
+                    const followUpResult = await provider.streamResponse(followUpResponse, aiMessageElement);
+                    const followUpText = followUpResult.response;
 
                     // Combine the responses
-                    aiResponse = aiResponse + (aiResponse ? '\n\n' : '') + followUpText;
+                    const combinedResponse = aiResponse + (aiResponse ? '\n\n' : '') + followUpText;
 
-                    // Update conversation history with the complete response
-                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
-                        conversationHistory[conversationHistory.length - 2].content = aiResponse;
-                    } else if (currentProvider === 'google') {
-                        conversationHistory[conversationHistory.length - 2].parts[0].text = aiResponse;
-                    }
+                    // Update the last assistant message in conversation history
+                    conversationHistory[conversationHistory.length - 2] = provider.formatHistoryMessage('assistant', combinedResponse);
 
                     // Add the follow-up AI response to history
-                    if (currentProvider === 'openai' || currentProvider === 'anthropic') {
-                        conversationHistory.push({
-                            role: 'assistant',
-                            content: followUpText
-                        });
-                    } else if (currentProvider === 'google') {
-                        conversationHistory.push({
-                            role: 'model',
-                            parts: [{ text: followUpText }]
-                        });
-                    }
+                    conversationHistory.push(provider.formatHistoryMessage('assistant', followUpText));
                 }
 
             } catch (error) {
@@ -2525,7 +1367,13 @@ Be ready to start playing once you receive the images!`;
                 console.log('Sending message:', message);
                 console.log('Current provider:', currentProvider);
                 console.log('Has API key:', !!apiKeys[currentProvider]);
+                
                 addMessage(message, true);
+                
+                // Add user message to conversation history using provider's format
+                const provider = providers[currentProvider];
+                conversationHistory.push(provider.formatHistoryMessage('user', message));
+                
                 chatInput.value = '';
                 callAI(message);
             } else {
@@ -2536,40 +1384,6 @@ Be ready to start playing once you receive the images!`;
         window.onclick = function(event) {
             if (event.target === apiKeyModal) {
                 closeModal();
-            }
-            if (event.target === systemPromptModal) {
-                closeSystemPromptModal();
-            }
-        }
-
-        // System Prompt Modal Functions
-        function showSystemPromptModal() {
-            systemPromptTextarea.value = GAME_SYSTEM_PROMPT;
-            systemPromptModal.style.display = 'block';
-        }
-
-        function closeSystemPromptModal() {
-            systemPromptModal.style.display = 'none';
-        }
-
-        function saveSystemPrompt() {
-            const newPrompt = systemPromptTextarea.value.trim();
-            if (newPrompt) {
-                GAME_SYSTEM_PROMPT = newPrompt;
-                localStorage.setItem('custom-system-prompt', newPrompt);
-                
-                // Show success feedback
-                const saveButton = document.querySelector('.save-prompt-btn');
-                const originalText = saveButton.textContent;
-                saveButton.textContent = 'Saved ✓';
-                saveButton.style.background = 'linear-gradient(135deg, #4caf50 0%, #45a049 100%)';
-                
-                setTimeout(() => {
-                    saveButton.textContent = originalText;
-                    closeSystemPromptModal();
-                }, 1000);
-                
-                console.log('System prompt updated successfully');
             }
         }
 
