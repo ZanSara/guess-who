@@ -5,15 +5,14 @@ class OpenAIProvider {
         this.displayName = 'OpenAI';
         this.keyPrefix = 'sk-';
         this.models = [
-            { value: 'gpt-4o', name: 'GPT-4o' },
-            { value: 'gpt-4o-mini', name: 'GPT-4o Mini' },
             { value: 'gpt-5', name: 'GPT-5' },
-            { value: 'gpt-4-turbo', name: 'GPT-4 Turbo' },
-            { value: 'gpt-4', name: 'GPT-4' },
-            { value: 'gpt-3.5-turbo', name: 'GPT-3.5 Turbo' }
+            { value: 'gpt-5-mini', name: 'GPT-5 Mini' },
+            { value: 'gpt-5-nano', name: 'GPT-5 Nano' },
+            { value: 'gpt-4o', name: 'GPT-4o' },
+            { value: 'gpt-4o-mini', name: 'GPT-4o Mini' }
         ];
         this.defaultModel = 'gpt-4o';
-        this.description = 'GPT-5, GPT-5 Mini, GPT-5 Nano, GPT-4o';
+        this.conversationHistory = [];
     }
 
     async validateApiKey(key, model) {
@@ -43,23 +42,42 @@ class OpenAIProvider {
         }
     }
 
-    async callAPI(message, model, conversationHistory = []) {
-        const messages = [];
-        
-        // Add conversation history
-        messages.push(...conversationHistory);
-        
-        // Add current message
-        messages.push({
-            role: 'user',
-            content: message
-        });
+    addToHistory(role, content) {
+        this.conversationHistory.push({ role, content });
+    }
+
+    clearHistory() {
+        this.conversationHistory = [];
+    }
+
+    setSystemPrompt(systemPrompt) {
+        // For OpenAI, system prompt goes at the beginning of conversation
+        this.clearHistory();
+        this.conversationHistory.push({ role: 'system', content: systemPrompt });
+    }
+
+    async callAPI(message, model, tools = null) {
+        // Add user message to history - handle both string and multimodal content
+        if (typeof message === 'string') {
+            this.addToHistory('user', message);
+        } else {
+            // Handle multimodal message (object with content array)
+            this.conversationHistory.push(message);
+        }
 
         const params = {
             model: model,
-            messages: messages,
+            messages: [...this.conversationHistory], // Use internal history
             stream: true
         };
+
+        // Add tools if provided
+        if (tools && tools.length > 0) {
+            params.tools = tools.map(tool => ({
+                type: 'function',
+                function: tool
+            }));
+        }
 
         const response = await fetch('https://api.openai.com/v1/chat/completions', {
             method: 'POST',
@@ -88,6 +106,8 @@ class OpenAIProvider {
         const decoder = new TextDecoder();
         let accumulatedResponse = '';
         let hasToolCalls = false;
+        let toolCalls = [];
+        let currentToolCalls = {};
 
         try {
             while (true) {
@@ -113,6 +133,28 @@ class OpenAIProvider {
                                 }
                                 if (delta.tool_calls) {
                                     hasToolCalls = true;
+                                    // Process tool calls streaming
+                                    for (const toolCall of delta.tool_calls) {
+                                        const id = toolCall.id;
+                                        if (!currentToolCalls[id]) {
+                                            currentToolCalls[id] = {
+                                                id: id,
+                                                type: toolCall.type || 'function',
+                                                function: {
+                                                    name: toolCall.function?.name || '',
+                                                    arguments: toolCall.function?.arguments || ''
+                                                }
+                                            };
+                                        } else {
+                                            // Append to existing tool call
+                                            if (toolCall.function?.name) {
+                                                currentToolCalls[id].function.name += toolCall.function.name;
+                                            }
+                                            if (toolCall.function?.arguments) {
+                                                currentToolCalls[id].function.arguments += toolCall.function.arguments;
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         } catch (e) {
@@ -125,7 +167,13 @@ class OpenAIProvider {
             reader.releaseLock();
         }
 
-        return { response: accumulatedResponse, hasToolCalls };
+        // Convert accumulated tool calls to array
+        toolCalls = Object.values(currentToolCalls);
+
+        // Add assistant response to history
+        this.addToHistory('assistant', accumulatedResponse);
+
+        return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }
 
     getApiKey() {
@@ -136,9 +184,15 @@ class OpenAIProvider {
         return localStorage.getItem('ai-model') || this.defaultModel;
     }
 
-    formatHistoryMessage(role, content) {
-        return { role, content };
+    createImageContent(base64Image) {
+        return {
+            type: 'image_url',
+            image_url: {
+                url: `data:image/png;base64,${base64Image}`
+            }
+        };
     }
+
 }
 
 // Export for use in main application

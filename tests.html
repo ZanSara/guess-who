@@ -89,7 +89,7 @@
         
         .log-output {
             background: #1a1a1a;
-            color: #00ff00;
+            color: #fff;
             padding: 15px;
             border-radius: 5px;
             font-family: 'Courier New', monospace;
@@ -150,10 +150,6 @@
     
     <!-- API Key Setup -->
     <div class="test-container">
-        <div class="test-header">
-            <h2>🔑 API Key Configuration</h2>
-        </div>
-        
         <div>
             <label>OpenAI API Key:</label><br>
             <input type="text" id="openaiKey" class="api-key-input" placeholder="sk-...">
@@ -173,19 +169,9 @@
         </div>
     </div>
     
-    <!-- Test Results -->
-    <div class="test-container">
-        <div class="test-header">
-            <h2>📋 Test Results</h2>
-        </div>
-        <div id="testResults"></div>
-    </div>
     
     <!-- Debug Log -->
     <div class="test-container">
-        <div class="test-header">
-            <h2>🐛 Debug Log</h2>
-        </div>
         <div class="log-output" id="debugLog"></div>
     </div>
 
@@ -228,23 +214,6 @@
             console.log(message);
         }
 
-        function addTestResult(provider, testName, status, message, duration = null) {
-            const result = { provider, testName, status, message, duration };
-            testResults.push(result);
-            
-            const resultsDiv = document.getElementById('testResults');
-            const resultDiv = document.createElement('div');
-            resultDiv.className = `test-result test-${status}`;
-            
-            let durationText = duration ? ` (${duration}ms)` : '';
-            resultDiv.innerHTML = `
-                <strong>[${provider.toUpperCase()}] ${testName}</strong>${durationText}<br>
-                ${message}
-            `;
-            
-            resultsDiv.appendChild(resultDiv);
-        }
-
         async function testProvider(provider) {
             const apiKey = document.getElementById(provider + 'Key').value.trim();
             if (!apiKey) {
@@ -280,6 +249,18 @@
                 {
                     name: 'Streaming Response',
                     test: () => testProviderStreaming(provider, apiKey)
+                },
+                {
+                    name: 'Tool Call Detection',
+                    test: () => testToolCallDetection(provider, apiKey)
+                },
+                {
+                    name: 'EliminateCharacter Tool',
+                    test: () => testEliminateCharacterTool(provider, apiKey)
+                },
+                {
+                    name: 'Image Recognition',
+                    test: () => testImageRecognition(provider, apiKey)
                 }
             ];
             
@@ -288,7 +269,6 @@
                 const startTime = Date.now();
                 
                 try {
-                    log(`  ⏳ Running: ${test.name}...`);
                     const result = await test.test();
                     const duration = Date.now() - startTime;
                     
@@ -297,11 +277,11 @@
                         message += ` (${result} items/characters)`;
                     }
                     
-                    addTestResult(provider, test.name, 'pass', message, duration);
+                    // addTestResult(provider, test.name, 'pass', message, duration);
                     log(`  ✅ ${test.name}: PASSED (${duration}ms)`);
                 } catch (error) {
                     const duration = Date.now() - startTime;
-                    addTestResult(provider, test.name, 'fail', error.message, duration);
+                    // addTestResult(provider, test.name, 'fail', error.message, duration);
                     log(`  ❌ ${test.name}: FAILED - ${error.message}`);
                 }
                 
@@ -335,13 +315,10 @@
             const startTime = Date.now();
             
             try {
-                // Create conversation history with system prompt
-                const conversationHistory = [{
-                    role: 'system',
-                    content: "Respond exactly as requested."
-                }];
+                // Set system prompt
+                providerInstance.setSystemPrompt("Respond exactly as requested.");
                 
-                const response = await providerInstance.callAPI(testMessage, testModel, conversationHistory);
+                const response = await providerInstance.callAPI(testMessage, testModel);
                 const duration = Date.now() - startTime;
                 
                 if (!response || !response.ok) {
@@ -386,13 +363,10 @@
             const testMessage = "Say 'Test successful'";
             
             try {
-                // Create conversation history with system prompt
-                const conversationHistory = [{
-                    role: 'system',
-                    content: "You are a helpful assistant."
-                }];
+                // Set system prompt
+                providerInstance.setSystemPrompt("You are a helpful assistant.");
                 
-                const response = await providerInstance.callAPI(testMessage, testModel, conversationHistory);
+                const response = await providerInstance.callAPI(testMessage, testModel);
                 const result = await providerInstance.streamResponse(response, mockElement);
                 
                 if (!result || typeof result.response !== 'string') {
@@ -405,6 +379,233 @@
                 return result.response.length;
             } catch (error) {
                 throw new Error(`Streaming test failed: ${error.message}`);
+            }
+        }
+
+        // Helper function to load and encode image
+        async function loadImageAsBase64(imagePath) {
+            try {
+                // Use fetch to load the image as a blob to avoid CORS issues
+                const response = await fetch(imagePath);
+                if (!response.ok) {
+                    throw new Error(`Failed to load image: ${response.status} ${response.statusText}`);
+                }
+                const blob = await response.blob();
+                
+                // Convert blob to base64
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                throw new Error(`Failed to load and encode image ${imagePath}: ${error.message}`);
+            }
+        }
+
+
+        // Tool call test functions
+        const ELIMINATE_CHARACTER_FUNCTION = {
+            name: 'eliminateCharacter',
+            description: 'Eliminate a character from your board when you learn they cannot be the user\'s character',
+            parameters: {
+                type: 'object',
+                properties: {
+                    characterName: {
+                        type: 'string',
+                        description: 'The name of the character to eliminate'
+                    }
+                },
+                required: ['characterName']
+            }
+        };
+
+        async function testToolCallDetection(provider, apiKey) {
+            log(`🔧 Testing ${provider} tool call detection...`);
+            const providerInstance = providers[provider];
+            
+            // Create a mock message element
+            const mockElement = {
+                textContent: '',
+                scrollHeight: 0
+            };
+            
+            const testModel = providerInstance.models[0].value;
+            const testMessage = "Please call the eliminateCharacter function with characterName 'TestCharacter'.";
+            
+            try {
+                // Set up system prompt that encourages tool use
+                providerInstance.setSystemPrompt("You must use the eliminateCharacter tool when asked to eliminate a character.");
+                
+                const response = await providerInstance.callAPI(testMessage, testModel, [ELIMINATE_CHARACTER_FUNCTION]);
+                const result = await providerInstance.streamResponse(response, mockElement);
+                
+                if (!result.hasOwnProperty('hasToolCalls')) {
+                    throw new Error('Provider does not return hasToolCalls property');
+                }
+                
+                if (!result.hasOwnProperty('toolCalls')) {
+                    throw new Error('Provider does not return toolCalls property');
+                }
+                
+                if (!Array.isArray(result.toolCalls)) {
+                    throw new Error('toolCalls is not an array');
+                }
+                
+                // log(`  📊 Tool call detection: hasToolCalls=${result.hasToolCalls}, toolCalls.length=${result.toolCalls.length}`);
+                
+                return result.toolCalls.length;
+            } catch (error) {
+                throw new Error(`Tool call detection test failed: ${error.message}`);
+            }
+        }
+
+        async function testEliminateCharacterTool(provider, apiKey) {
+            log(`⚡ Testing ${provider} eliminateCharacter tool execution...`);
+            const providerInstance = providers[provider];
+            
+            // Create a mock message element
+            const mockElement = {
+                textContent: '',
+                scrollHeight: 0
+            };
+            
+            const testModel = providerInstance.models[0].value;
+            const testMessage = "I need to eliminate 'Alice' from my board. Please use the eliminateCharacter function.";
+            
+            try {
+                // Set up system prompt that encourages tool use
+                providerInstance.setSystemPrompt("You are playing Guess Who. When asked to eliminate a character, you must use the eliminateCharacter tool.");
+                
+                const response = await providerInstance.callAPI(testMessage, testModel, [ELIMINATE_CHARACTER_FUNCTION]);
+                const result = await providerInstance.streamResponse(response, mockElement);
+                
+                if (!result.hasToolCalls) {
+                    throw new Error('Expected tool calls but none were detected');
+                }
+                
+                if (!result.toolCalls || result.toolCalls.length === 0) {
+                    throw new Error('No tool calls returned despite hasToolCalls being true');
+                }
+                
+                // Check the structure of the tool call
+                const toolCall = result.toolCalls[0];
+                if (!toolCall.function) {
+                    throw new Error('Tool call missing function property');
+                }
+                
+                if (toolCall.function.name !== 'eliminateCharacter') {
+                    throw new Error(`Expected eliminateCharacter function, got ${toolCall.function.name}`);
+                }
+                
+                if (!toolCall.function.arguments) {
+                    throw new Error('Tool call missing arguments');
+                }
+                
+                // Try to parse the arguments
+                let parsedArgs;
+                try {
+                    parsedArgs = JSON.parse(toolCall.function.arguments);
+                } catch (e) {
+                    throw new Error(`Tool call arguments are not valid JSON: ${toolCall.function.arguments}`);
+                }
+                
+                if (!parsedArgs.characterName) {
+                    throw new Error('Tool call arguments missing characterName');
+                }
+                
+                log(`  ✅ Tool call structure valid: function=${toolCall.function.name}, args=${JSON.stringify(parsedArgs)}`);
+                
+                return parsedArgs.characterName.length;
+            } catch (error) {
+                throw new Error(`EliminateCharacter tool test failed: ${error.message}`);
+            }
+        }
+
+        async function testImageRecognition(provider, apiKey) {
+            log(`👁️ Testing ${provider} image recognition with Abigail character...`);
+            const providerInstance = providers[provider];
+            
+            // Create a mock message element
+            const mockElement = {
+                textContent: '',
+                scrollHeight: 0
+            };
+            
+            const testModel = providerInstance.models[0].value;
+            
+            try {
+                // Load Abigail's image
+                const base64Image = await loadImageAsBase64('guess-who-people/Abigail.png');
+                log(`  📸 Image loaded, size: ${base64Image.length} characters`);
+                
+                // Set system prompt
+                providerInstance.setSystemPrompt("You are an image recognition assistant. Describe what you see in the image and identify any text visible in the image.");
+                
+                // Create the message content with image using provider-specific method
+                const imageContent = providerInstance.createImageContent(base64Image);
+                const textContent = "Please look at this image and tell me the name that appears in the image. Focus on transcribing any text you can see.";
+                
+                // Send multimodal content based on provider capabilities
+                let response;
+                if (provider === 'openai') {
+                    // OpenAI supports multimodal in messages array
+                    const messageWithImage = {
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: textContent },
+                            imageContent
+                        ]
+                    };
+                    response = await providerInstance.callAPI(messageWithImage, testModel);
+                } else if (provider === 'anthropic') {
+                    // Anthropic also supports multimodal - similar format to OpenAI
+                    const messageWithImage = {
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: textContent },
+                            imageContent
+                        ]
+                    };
+                    response = await providerInstance.callAPI(messageWithImage, testModel);
+                } else if (provider === 'gemini') {
+                    // Gemini has different format - text and image parts
+                    const messageWithImage = {
+                        role: 'user',
+                        parts: [
+                            { text: textContent },
+                            imageContent
+                        ]
+                    };
+                    response = await providerInstance.callAPI(messageWithImage, testModel);
+                }
+                
+                const result = await providerInstance.streamResponse(response, mockElement);
+                
+                if (!result || typeof result.response !== 'string') {
+                    throw new Error('Image recognition test did not return valid response');
+                }
+                
+                // Check that we get a response and look for "Abigail" in it
+                log(`  🔍 Response received: "${result.response.substring(0, 100)}..."`);
+                
+                const hasAbigailName = result.response.toLowerCase().includes('abigail');
+                if (!hasAbigailName) {
+                    log(`  ⚠️ Expected "Abigail" in response. Full response: "${result.response}"`);
+                    throw new Error(`Expected to find "Abigail" in image recognition response, but got: ${result.response.substring(0, 200)}...`);
+                }
+                
+                log(`  ✅ Successfully identified "Abigail" in the image!`);
+                return result.response.length;
+            } catch (error) {
+                if (error.message.includes('Image content would be included here')) {
+                    throw new Error(`Image recognition test skipped: Provider ${provider} needs multimodal support implementation`);
+                }
+                throw new Error(`Image recognition test failed: ${error.message}`);
             }
         }
 

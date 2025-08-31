@@ -547,9 +547,6 @@
         }
 
 
-
-
-
         function handleKeyPress(event) {
             if (event.key === 'Enter') {
                 sendMessage();
@@ -610,9 +607,6 @@
 
         // Track if this is the first message of the game
         let isFirstGameMessage = true;
-        
-        // Conversation history
-        let conversationHistory = [];
 
         // Function definitions for AI tools
         const ELIMINATE_CHARACTER_FUNCTION = {
@@ -651,19 +645,15 @@
                 
                 console.log('Calling API for provider:', currentProvider);
                 
-                // Add system prompt to conversation history if this is the first message
-                let fullConversationHistory = [...conversationHistory];
+                // Set system prompt if this is the first message
                 if (isFirstGameMessage) {
-                    fullConversationHistory.unshift({
-                        role: 'system',
-                        content: GAME_SYSTEM_PROMPT
-                    });
+                    provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
+                    isFirstGameMessage = false;
                 }
                 
-                const response = await provider.callAPI(message, currentModel, fullConversationHistory);
-                
-                // After first message, set flag to false
-                isFirstGameMessage = false;
+                // Create multimodal message with character image
+                const multimodalMessage = await createMultimodalMessage(message);
+                const response = await provider.callAPI(multimodalMessage, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
 
                 console.log('API response received, status:', response.status);
 
@@ -681,9 +671,42 @@
                 const result = await provider.streamResponse(response, aiMessageElement);
                 const aiResponse = result.response;
                 const hasToolCalls = result.hasToolCalls;
+                const toolCalls = result.toolCalls || [];
                 
-                // Store AI response in conversation history using provider's format
-                conversationHistory.push(provider.formatHistoryMessage('assistant', aiResponse));
+                // Execute tool calls if any
+                if (toolCalls.length > 0) {
+                    console.log('Executing tool calls:', toolCalls);
+                    for (const toolCall of toolCalls) {
+                        if (toolCall.function.name === 'eliminateCharacter') {
+                            try {
+                                const args = JSON.parse(toolCall.function.arguments);
+                                const functionResult = eliminateCharacter(args.characterName);
+                                console.log('Tool call result:', functionResult);
+                                
+                                // Display the elimination in the chat
+                                if (functionResult.success) {
+                                    const eliminationDiv = document.createElement('div');
+                                    eliminationDiv.className = 'elimination-notice';
+                                    eliminationDiv.textContent = `🚫 Eliminated: ${args.characterName}`;
+                                    eliminationDiv.style.cssText = `
+                                        background: rgba(255, 0, 0, 0.1);
+                                        border-left: 3px solid #ff0000;
+                                        padding: 8px 12px;
+                                        margin: 4px 0;
+                                        font-size: 0.9em;
+                                        color: #666;
+                                    `;
+                                    chatMessages.appendChild(eliminationDiv);
+                                    chatMessages.scrollTop = chatMessages.scrollHeight;
+                                }
+                            } catch (e) {
+                                console.error('Error executing tool call:', e);
+                            }
+                        }
+                    }
+                }
+                
+                // AI response is automatically stored in provider's internal history
 
                 // If the response was only tool calls with no text, prompt again for a conversational response
                 if (hasToolCalls && (!aiResponse || aiResponse.trim() === '')) {
@@ -692,21 +715,12 @@
                     // Add a follow-up message to get conversational response
                     const followUpMessage = "Please provide your response or next question.";
                     
-                    // Add the follow-up message to conversation history
-                    conversationHistory.push(provider.formatHistoryMessage('user', followUpMessage));
-                    
-                    const followUpResponse = await provider.callAPI(followUpMessage, currentModel, conversationHistory);
+                    const followUpMultimodal = await createMultimodalMessage(followUpMessage);
+                    const followUpResponse = await provider.callAPI(followUpMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
                     const followUpResult = await provider.streamResponse(followUpResponse, aiMessageElement);
                     const followUpText = followUpResult.response;
 
-                    // Combine the responses
-                    const combinedResponse = aiResponse + (aiResponse ? '\n\n' : '') + followUpText;
-
-                    // Update the last assistant message in conversation history
-                    conversationHistory[conversationHistory.length - 2] = provider.formatHistoryMessage('assistant', combinedResponse);
-
-                    // Add the follow-up AI response to history
-                    conversationHistory.push(provider.formatHistoryMessage('assistant', followUpText));
+                    // The provider automatically handles adding messages to its internal history
                 }
 
             } catch (error) {
@@ -743,10 +757,6 @@
                 console.log('Has API key:', !!apiKeys[currentProvider]);
                 
                 addMessage(message, true);
-                
-                // Add user message to conversation history using provider's format
-                const provider = providers[currentProvider];
-                conversationHistory.push(provider.formatHistoryMessage('user', message));
                 
                 chatInput.value = '';
                 callAI(message);
@@ -847,6 +857,87 @@
             }
         }
 
+        // Helper functions for image loading
+        async function getCharacterImageAsBase64(characterName) {
+            try {
+                const response = await fetch(`guess-who-people/${characterName}.png`);
+                if (!response.ok) {
+                    throw new Error(`Failed to load image: ${response.status}`);
+                }
+                const blob = await response.blob();
+                
+                return new Promise((resolve, reject) => {
+                    const reader = new FileReader();
+                    reader.onload = function() {
+                        const base64 = reader.result.split(',')[1];
+                        resolve(base64);
+                    };
+                    reader.onerror = reject;
+                    reader.readAsDataURL(blob);
+                });
+            } catch (error) {
+                console.error(`Failed to load character image ${characterName}:`, error);
+                return null;
+            }
+        }
+
+        // Helper function to create multimodal message with images
+        async function createMultimodalMessage(textContent, includeBoard = false) {
+            const provider = providers[currentProvider];
+            if (!provider || !provider.createImageContent) {
+                // Fallback to text-only if provider doesn't support images
+                return textContent;
+            }
+
+            try {
+                const content = [{ type: 'text', text: textContent }];
+                
+                // Add the opponent's chosen character image (what the AI is defending)
+                if (gameState.opponentChosenCharacter) {
+                    const characterImageBase64 = await getCharacterImageAsBase64(gameState.opponentChosenCharacter);
+                    if (characterImageBase64) {
+                        const imageContent = provider.createImageContent(characterImageBase64);
+                        content.push(imageContent);
+                    }
+                }
+                
+                // For OpenAI and Anthropic, return the multimodal message structure
+                if (currentProvider === 'openai' || currentProvider === 'anthropic') {
+                    return {
+                        role: 'user',
+                        content: content
+                    };
+                }
+                
+                // For Gemini, convert to parts format
+                if (currentProvider === 'gemini') {
+                    return {
+                        role: 'user',
+                        parts: content.map(item => {
+                            if (item.type === 'text') return { text: item.text };
+                            if (item.inlineData) return item;
+                            // Handle image_url format and convert to Gemini format
+                            if (item.image_url) {
+                                const base64Data = item.image_url.url.split(',')[1];
+                                return {
+                                    inlineData: {
+                                        mimeType: 'image/png',
+                                        data: base64Data
+                                    }
+                                };
+                            }
+                            return item;
+                        })
+                    };
+                }
+                
+                return textContent; // Fallback
+            } catch (error) {
+                console.error('Error creating multimodal message:', error);
+                return textContent; // Fallback to text-only
+            }
+        }
+
         // Function for LLM to eliminate characters from its board
         function eliminateCharacter(characterName) {
             // Validate character name exists
@@ -914,22 +1005,17 @@
                 // Create a simple prompt to generate the greeting
                 const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user you're ready to play and ask them for their first question. Keep it conversational and under 2 sentences.";
                 
-                // Create conversation history with system prompt and greeting request
-                const conversationHistory = [{
-                    role: 'system',
-                    content: GAME_SYSTEM_PROMPT
-                }, {
-                    role: 'user',
-                    content: greetingPrompt
-                }];
-
                 console.log('Generating initial greeting (canary test)...');
+                
+                // Set system prompt for the provider
+                provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
                 
                 // Show typing indicator
                 const typingIndicator = showTypingIndicator();
 
                 try {
-                    const response = await provider.callAPI(greetingPrompt, currentModel, conversationHistory);
+                    const greetingMultimodal = await createMultimodalMessage(greetingPrompt);
+                    const response = await provider.callAPI(greetingMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
                     
                     // Remove typing indicator
                     if (typingIndicator && typingIndicator.parentNode) {
@@ -974,7 +1060,11 @@
             try {
                 // Reset game state
                 isFirstGameMessage = true;
-                conversationHistory = [];
+                
+                // Clear all provider conversation histories
+                Object.values(providers).forEach(provider => {
+                    provider.clearHistory();
+                });
                 
                 // Select random characters for user and opponent
                 selectRandomCharacters();

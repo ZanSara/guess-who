@@ -7,12 +7,11 @@ class GeminiProvider {
         this.models = [
             { value: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
             { value: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-            { value: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' },
-            { value: 'gemini-1.5-pro', name: 'Gemini 1.5 Pro' },
-            { value: 'gemini-1.5-flash', name: 'Gemini 1.5 Flash' }
+            { value: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' }
         ];
-        this.defaultModel = 'gemini-2.5-pro';
-        this.description = 'Gemini 2.5 Pro, 2.5 Flash, 2.5 Flash Lite';
+        this.defaultModel = 'gemini-2.5-flash';
+        this.conversationHistory = [];
+        this.systemPrompt = '';
     }
 
     async validateApiKey(key) {
@@ -31,42 +30,73 @@ class GeminiProvider {
             throw new Error('API key does not have access to the required model.');
         } else if (!response.ok) {
             const error = await response.json();
-            throw new Error(error.error.message || `API validation failed (${response.status}). Please try again.`);
+            throw new Error(error?.error?.message || `API validation failed (${response.status}). Please try again.`);
         }
     }
 
-    async callAPI(message, model, conversationHistory = []) {
-        const contents = [];
-        let systemInstruction = null;
-        
-        // Extract system prompt if it's the first message in conversation history
-        const conversationToProcess = [...conversationHistory];
-        if (conversationToProcess.length > 0 && conversationToProcess[0].role === 'system') {
-            systemInstruction = {
-                parts: [{ text: conversationToProcess.shift().content }]
-            };
-        }
-        
-        // Add conversation history (without system message)
-        contents.push(...conversationToProcess);
-        
-        // Add current message
-        contents.push({
-            role: 'user',
-            parts: [{ text: message }]
+    addToHistory(role, content) {
+        // Convert standard roles to Gemini format
+        const geminiRole = role === 'assistant' ? 'model' : role;
+        this.conversationHistory.push({
+            role: geminiRole,
+            parts: [{ text: content }]
         });
+    }
+
+    clearHistory() {
+        this.conversationHistory = [];
+        this.systemPrompt = '';
+    }
+
+    setSystemPrompt(systemPrompt) {
+        // For Gemini, system prompt is separate as systemInstruction
+        this.systemPrompt = systemPrompt;
+        this.conversationHistory = []; // Clear history when setting system prompt
+    }
+
+    async callAPI(message, model, tools = null) {
+        // Add user message to history - handle both string and multimodal content
+        if (typeof message === 'string') {
+            this.addToHistory('user', message);
+        } else if (message.parts) {
+            // Handle Gemini-style multimodal message (object with parts array)
+            const geminiMessage = {
+                role: 'user',
+                parts: message.parts
+            };
+            this.conversationHistory.push(geminiMessage);
+        } else {
+            // Handle other multimodal formats and convert to Gemini format
+            this.conversationHistory.push({
+                role: 'user',
+                parts: message.content ? message.content.map(item => {
+                    if (item.type === 'text') return { text: item.text };
+                    if (item.type === 'image') return item.source ? { inlineData: { mimeType: item.source.media_type, data: item.source.data } } : item;
+                    return item;
+                }) : [{ text: JSON.stringify(message) }]
+            });
+        }
 
         const params = {
-            contents: contents,
+            contents: [...this.conversationHistory], // Use internal history
             generationConfig: {
                 maxOutputTokens: 4096,
                 temperature: 0.7
             }
         };
 
+        // Add tools if provided
+        if (tools && tools.length > 0) {
+            params.tools = [{
+                functionDeclarations: tools
+            }];
+        }
+
         // Add system instruction as separate parameter for Gemini
-        if (systemInstruction) {
-            params.systemInstruction = systemInstruction;
+        if (this.systemPrompt) {
+            params.systemInstruction = {
+                parts: [{ text: this.systemPrompt }]
+            };
         }
 
         const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.getApiKey()}`, {
@@ -84,7 +114,7 @@ class GeminiProvider {
                 throw new Error('Rate limit exceeded. Please try again later.');
             } else {
                 const error = await response.json();
-                throw new Error(error.error.message || `API request failed: ${response.status}`);
+                throw new Error(error?.error?.message || `API request failed: ${response.status}`);
             }
         }
 
@@ -96,6 +126,7 @@ class GeminiProvider {
         const decoder = new TextDecoder();
         let accumulatedResponse = '';
         let hasToolCalls = false;
+        let toolCalls = [];
         let buffer = '';
         let bracketCount = 0;
         let inJsonObject = false;
@@ -143,6 +174,15 @@ class GeminiProvider {
                                                 }
                                                 if (part.functionCall) {
                                                     hasToolCalls = true;
+                                                    // Convert Gemini format to standard format
+                                                    toolCalls.push({
+                                                        id: `gemini_${Date.now()}_${toolCalls.length}`,
+                                                        type: 'function',
+                                                        function: {
+                                                            name: part.functionCall.name,
+                                                            arguments: JSON.stringify(part.functionCall.args || {})
+                                                        }
+                                                    });
                                                 }
                                             }
                                         }
@@ -176,7 +216,10 @@ class GeminiProvider {
             reader.releaseLock();
         }
 
-        return { response: accumulatedResponse, hasToolCalls };
+        // Add assistant response to history
+        this.addToHistory('assistant', accumulatedResponse);
+
+        return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }
 
     getApiKey() {
@@ -187,14 +230,15 @@ class GeminiProvider {
         return localStorage.getItem('ai-model') || this.defaultModel;
     }
 
-    formatHistoryMessage(role, content) {
-        // Convert standard roles to Gemini format
-        const geminiRole = role === 'assistant' ? 'model' : role;
+    createImageContent(base64Image) {
         return {
-            role: geminiRole,
-            parts: [{ text: content }]
+            inlineData: {
+                mimeType: 'image/png',
+                data: base64Image
+            }
         };
     }
+
 }
 
 // Export for use in main application

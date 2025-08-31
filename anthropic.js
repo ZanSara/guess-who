@@ -11,7 +11,8 @@ class AnthropicProvider {
             { value: 'claude-3-7-sonnet-latest', name: 'Claude Sonnet 3.7' },
         ];
         this.defaultModel = 'claude-sonnet-4-0';
-        this.description = 'Claude Opus 4, Claude Sonnet 4';
+        this.conversationHistory = [];
+        this.systemPrompt = '';
     }
 
     async validateApiKey(key, model) {
@@ -55,35 +56,45 @@ class AnthropicProvider {
         }
     }
 
-    async callAPI(message, model, conversationHistory = []) {
-        const messages = [];
-        let systemPrompt = null;
-        
-        // Extract system prompt if it's the first message in conversation history
-        const conversationToProcess = [...conversationHistory];
-        if (conversationToProcess.length > 0 && conversationToProcess[0].role === 'system') {
-            systemPrompt = conversationToProcess.shift().content;
+    addToHistory(role, content) {
+        this.conversationHistory.push({ role, content });
+    }
+
+    clearHistory() {
+        this.conversationHistory = [];
+        this.systemPrompt = '';
+    }
+
+    setSystemPrompt(systemPrompt) {
+        // For Anthropic, system prompt is separate from conversation history
+        this.systemPrompt = systemPrompt;
+        this.conversationHistory = []; // Clear history when setting system prompt
+    }
+
+    async callAPI(message, model, tools = null) {
+        // Add user message to history - handle both string and multimodal content
+        if (typeof message === 'string') {
+            this.addToHistory('user', message);
+        } else {
+            // Handle multimodal message (object with content array)
+            this.conversationHistory.push(message);
         }
-        
-        // Add conversation history (without system message)
-        messages.push(...conversationToProcess);
-        
-        // Add current message
-        messages.push({
-            role: 'user',
-            content: message
-        });
 
         const params = {
             model: model,
             max_tokens: 4096,
-            messages: messages,
+            messages: [...this.conversationHistory], // Use internal history
             stream: true
         };
 
+        // Add tools if provided
+        if (tools && tools.length > 0) {
+            params.tools = tools;
+        }
+
         // Add system prompt as separate parameter for Anthropic
-        if (systemPrompt) {
-            params.system = systemPrompt;
+        if (this.systemPrompt) {
+            params.system = this.systemPrompt;
         }
 
         const response = await fetch('https://api.anthropic.com/v1/messages', {
@@ -115,6 +126,8 @@ class AnthropicProvider {
         const decoder = new TextDecoder();
         let accumulatedResponse = '';
         let hasToolCalls = false;
+        let toolCalls = [];
+        let currentToolCall = null;
 
         try {
             while (true) {
@@ -138,6 +151,21 @@ class AnthropicProvider {
                             }
                             if (parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use') {
                                 hasToolCalls = true;
+                                currentToolCall = {
+                                    id: parsed.content_block.id,
+                                    type: 'function',
+                                    function: {
+                                        name: parsed.content_block.name,
+                                        arguments: ''
+                                    }
+                                };
+                            }
+                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.partial_json && currentToolCall) {
+                                currentToolCall.function.arguments += parsed.delta.partial_json;
+                            }
+                            if (parsed.type === 'content_block_stop' && currentToolCall) {
+                                toolCalls.push(currentToolCall);
+                                currentToolCall = null;
                             }
                         } catch (e) {
                             // Skip invalid JSON
@@ -149,7 +177,10 @@ class AnthropicProvider {
             reader.releaseLock();
         }
 
-        return { response: accumulatedResponse, hasToolCalls };
+        // Add assistant response to history
+        this.addToHistory('assistant', accumulatedResponse);
+
+        return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }
 
     getApiKey() {
@@ -160,9 +191,17 @@ class AnthropicProvider {
         return localStorage.getItem('ai-model') || this.defaultModel;
     }
 
-    formatHistoryMessage(role, content) {
-        return { role, content };
+    createImageContent(base64Image) {
+        return {
+            type: 'image',
+            source: {
+                type: 'base64',
+                media_type: 'image/png',
+                data: base64Image
+            }
+        };
     }
+
 }
 
 // Export for use in main application
