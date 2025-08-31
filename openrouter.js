@@ -35,20 +35,39 @@ class OpenRouterProvider {
 
             const data = await response.json();
             
-            // Filter models that support images (vision models)
+            console.log(`OpenRouter: Found ${data.data.length} total models`);
+            
+            // For now, let's be less restrictive and just use vision models
+            // since tool support detection might not be working correctly
             const visionModels = data.data.filter(model => 
                 model.architecture && 
                 model.architecture.input_modalities && 
                 model.architecture.input_modalities.includes('image')
             );
+            
+            console.log(`OpenRouter: Found ${visionModels.length} vision models`);
+            
+            // If no vision models found, use fallback list
+            if (visionModels.length === 0) {
+                console.log('OpenRouter: No vision models found, using fallback list');
+                this.models = [
+                    { value: 'openai/gpt-4o', name: 'GPT-4o' },
+                    { value: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
+                    { value: 'anthropic/claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+                    { value: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet' }
+                ];
+            } else {
+                // Map to our model format
+                this.models = visionModels.map(model => ({
+                    value: model.id,
+                    name: model.name || model.id
+                }));
+                
+                // Log first few models for debugging
+                console.log('OpenRouter: First few vision models:', this.models.slice(0, 3));
+            }
 
-            // Map to our model format
-            this.models = visionModels.map(model => ({
-                value: model.id,
-                name: model.name || model.id
-            }));
-
-            // Set default model to the first available vision model
+            // Set default model to the first available model
             if (this.models.length > 0) {
                 this.defaultModel = this.models[0].value;
             }
@@ -58,16 +77,17 @@ class OpenRouterProvider {
 
         } catch (error) {
             console.error('Error loading OpenRouter models:', error);
-            // Fallback to a known vision model
+            // Fallback to known vision models
             this.models = [
-                { value: 'anthropic/claude-3-haiku', name: 'Claude 3 Haiku' },
-                { value: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet' },
-                { value: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' },
                 { value: 'openai/gpt-4o', name: 'GPT-4o' },
-                { value: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' }
+                { value: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
+                { value: 'anthropic/claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+                { value: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet' },
+                { value: 'anthropic/claude-3-opus', name: 'Claude 3 Opus' }
             ];
             this.defaultModel = 'openai/gpt-4o';
             this.modelsLoaded = true;
+            console.log('OpenRouter: Using fallback models due to API error');
             throw error;
         }
     }
@@ -102,20 +122,30 @@ class OpenRouterProvider {
             // Key is valid, now parse the models for future use
             const data = await response.json();
             
-            // Filter models that support images (vision models)
+            // Filter for vision models (being less restrictive for now)
             const visionModels = data.data.filter(model => 
                 model.architecture && 
                 model.architecture.input_modalities && 
                 model.architecture.input_modalities.includes('image')
             );
 
-            // Map to our model format
-            this.models = visionModels.map(model => ({
-                value: model.id,
-                name: model.name || model.id
-            }));
+            // Use vision models or fallback
+            if (visionModels.length === 0) {
+                this.models = [
+                    { value: 'openai/gpt-4o', name: 'GPT-4o' },
+                    { value: 'openai/gpt-4o-mini', name: 'GPT-4o Mini' },
+                    { value: 'anthropic/claude-3-5-sonnet', name: 'Claude 3.5 Sonnet' },
+                    { value: 'anthropic/claude-3-sonnet', name: 'Claude 3 Sonnet' }
+                ];
+            } else {
+                // Map to our model format
+                this.models = visionModels.map(model => ({
+                    value: model.id,
+                    name: model.name || model.id
+                }));
+            }
 
-            // Set default model to the first available vision model
+            // Set default model to the first available model
             if (this.models.length > 0) {
                 this.defaultModel = this.models[0].value;
             }

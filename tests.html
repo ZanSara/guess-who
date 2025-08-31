@@ -167,6 +167,12 @@
             <input type="text" id="geminiKey" class="api-key-input" placeholder="AIza...">
             <button onclick="testProvider('gemini')" class="test-button">Test Gemini</button>
         </div>
+        
+        <div>
+            <label>OpenRouter API Key:</label><br>
+            <input type="text" id="openrouterKey" class="api-key-input" placeholder="sk-or-...">
+            <button onclick="testProvider('openrouter')" class="test-button">Test OpenRouter</button>
+        </div>
     </div>
     
     
@@ -178,6 +184,7 @@
     <script src="openai.js"></script>
     <script src="anthropic.js"></script>
     <script src="gemini.js"></script>
+    <script src="openrouter.js"></script>
     
     <script>
         // Test state
@@ -189,6 +196,7 @@
         document.getElementById('openaiKey').value = localStorage.getItem('openai-api-key') || '';
         document.getElementById('anthropicKey').value = localStorage.getItem('anthropic-api-key') || '';
         document.getElementById('geminiKey').value = localStorage.getItem('gemini-api-key') || '';
+        document.getElementById('openrouterKey').value = localStorage.getItem('openrouter-api-key') || '';
 
         // Save the keys in local storage once the respective Test button is pressed
         function saveApiKeyToStorage(provider, apiKey) {
@@ -200,7 +208,8 @@
             providers = {
                 openai: new OpenAIProvider(),
                 anthropic: new AnthropicProvider(),
-                gemini: new GeminiProvider()
+                gemini: new GeminiProvider(),
+                openrouter: new OpenRouterProvider()
             };
             log('🚀 Test suite initialized');
             log('📦 Available providers: ' + Object.keys(providers).join(', '));
@@ -212,6 +221,27 @@
             debugLog.textContent += `[${timestamp}] ${message}\n`;
             debugLog.scrollTop = debugLog.scrollHeight;
             console.log(message);
+        }
+
+        // Helper function to get test model for a provider
+        async function getTestModel(provider, apiKey) {
+            const providerInstance = providers[provider];
+            
+            if (provider === 'openrouter') {
+                // For OpenRouter, set the API key in localStorage (that's how it gets the key)
+                localStorage.setItem('openrouter-api-key', apiKey);
+                
+                // Load models if not already loaded
+                if (!providerInstance.models || providerInstance.models.length === 0) {
+                    await providerInstance.loadModels();
+                }
+            }
+            
+            if (!providerInstance.models || providerInstance.models.length === 0) {
+                throw new Error(`No models available for provider ${provider}`);
+            }
+            
+            return providerInstance.models[0].value;
         }
 
         async function testProvider(provider) {
@@ -295,7 +325,19 @@
             }
 
             log(`🔐 Testing ${provider} API key validation...`);
-            const testModel = providerInstance.models[0].value;
+            
+            // For OpenRouter, we need to load models first or use null as per its validateApiKey method
+            let testModel = null;
+            if (provider === 'openrouter') {
+                // OpenRouter validation doesn't need a model parameter
+                testModel = null;
+            } else {
+                // For other providers, use the first available model
+                if (!providerInstance.models || providerInstance.models.length === 0) {
+                    throw new Error(`No models configured for provider ${provider}`);
+                }
+                testModel = providerInstance.models[0].value;
+            }
             
             try {
                 await providerInstance.validateApiKey(apiKey, testModel);
@@ -309,7 +351,7 @@
             const providerInstance = providers[provider];
             log(`💬 Testing ${provider} basic chat...`);
             
-            const testModel = providerInstance.models[0].value;
+            const testModel = await getTestModel(provider, apiKey);
             const testMessage = "Say 'Test successful'.";
             
             const startTime = Date.now();
@@ -335,6 +377,19 @@
             log(`🧠 Testing ${provider} model availability...`);
             const providerInstance = providers[provider];
             
+            // For OpenRouter, we need to load models dynamically
+            if (provider === 'openrouter') {
+                try {
+                    // Set the API key in localStorage (that's how OpenRouter gets it)
+                    localStorage.setItem('openrouter-api-key', apiKey);
+                    
+                    // Load models from the API
+                    await providerInstance.loadModels();
+                } catch (error) {
+                    throw new Error(`Failed to load OpenRouter models: ${error.message}`);
+                }
+            }
+            
             const availableModels = providerInstance.models;
             if (!availableModels || availableModels.length === 0) {
                 throw new Error('No models configured for provider');
@@ -359,7 +414,7 @@
                 scrollHeight: 0
             };
             
-            const testModel = providerInstance.models[0].value;
+            const testModel = await getTestModel(provider, apiKey);
             const testMessage = "Say 'Test successful'";
             
             try {
@@ -434,7 +489,7 @@
                 scrollHeight: 0
             };
             
-            const testModel = providerInstance.models[0].value;
+            const testModel = await getTestModel(provider, apiKey);
             const testMessage = "Please call the eliminateCharacter function with characterName 'TestCharacter'.";
             
             try {
@@ -474,7 +529,7 @@
                 scrollHeight: 0
             };
             
-            const testModel = providerInstance.models[0].value;
+            const testModel = await getTestModel(provider, apiKey);
             const testMessage = "I need to eliminate 'Alice' from my board. Please use the eliminateCharacter function.";
             
             try {
@@ -536,7 +591,7 @@
                 scrollHeight: 0
             };
             
-            const testModel = providerInstance.models[0].value;
+            const testModel = await getTestModel(provider, apiKey);
             
             try {
                 // Load Abigail's image
@@ -578,6 +633,16 @@
                         role: 'user',
                         parts: [
                             { text: textContent },
+                            imageContent
+                        ]
+                    };
+                    response = await providerInstance.callAPI(messageWithImage, testModel);
+                } else if (provider === 'openrouter') {
+                    // OpenRouter uses OpenAI-compatible format
+                    const messageWithImage = {
+                        role: 'user',
+                        content: [
+                            { type: 'text', text: textContent },
                             imageContent
                         ]
                     };

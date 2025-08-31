@@ -455,8 +455,6 @@
         }
 
         function showSettings() {
-            const modalTitle = document.getElementById('modalTitle');
-            
             // Set up the modal with current configuration
             selectProvider(currentProvider);
             modelSelect.value = currentModel;
@@ -722,23 +720,6 @@
             }
         }
 
-        async function getImageAsBase64(imagePath) {
-            try {
-                const response = await fetch(imagePath);
-                const blob = await response.blob();
-                return new Promise((resolve) => {
-                    const reader = new FileReader();
-                    reader.onloadend = () => {
-                        const base64 = reader.result.split(',')[1]; // Remove data:image/png;base64, prefix
-                        resolve(base64);
-                    };
-                    reader.readAsDataURL(blob);
-                });
-            } catch (error) {
-                console.error('Error loading image:', error);
-                return '';
-            }
-        }
 
         // Track if this is the first message of the game
         let isFirstGameMessage = true;
@@ -842,7 +823,7 @@
                     
                     const followUpMultimodal = await createMultimodalMessage(followUpMessage);
                     const followUpResponse = await provider.callAPI(followUpMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
-                    const followUpResult = await provider.streamResponse(followUpResponse, aiMessageElement);
+                    const followUpResult = await provider.streamResponse(followUpResponse, null);
                     const followUpText = followUpResult.response;
 
                     // The provider automatically handles adding messages to its internal history
@@ -970,16 +951,6 @@
             }
         }
 
-        function toggleLLMCardElimination(name) {
-            const card = llmCardsGrid.querySelector(`[data-character="${name}"]`);
-            if (gameState.llmEliminated.has(name)) {
-                gameState.llmEliminated.delete(name);
-                card.classList.remove('eliminated');
-            } else {
-                gameState.llmEliminated.add(name);
-                card.classList.add('eliminated');
-            }
-        }
 
         // Helper functions for image loading
         async function getCharacterImageAsBase64(characterName) {
@@ -1124,9 +1095,9 @@
                 }
 
                 // Create a simple prompt to generate the greeting
-                const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user you're ready to play and ask them for their first question. Keep it conversational and under 2 sentences.";
+                const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user whether you received the image of the board and your character and ask them for their first question. Keep it conversational and under 2 sentences.";
                 
-                console.log('Generating initial greeting (canary test)...');
+                console.log('Generating initial message...');
                 
                 // Set system prompt for the provider
                 provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
