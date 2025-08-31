@@ -42,8 +42,9 @@ class OpenAIProvider {
         }
     }
 
-    addToHistory(role, content) {
-        this.conversationHistory.push({ role, content });
+    addToHistory(message) {
+        // See createMultimodalMessage()
+        this.conversationHistory.push(message);
     }
 
     clearHistory() {
@@ -64,6 +65,7 @@ class OpenAIProvider {
             // Handle multimodal message (object with content array)
             this.conversationHistory.push(message);
         }
+        console.log(this.conversationHistory);
 
         const params = {
             model: model,
@@ -200,7 +202,7 @@ class OpenAIProvider {
         toolCalls = Object.values(currentToolCalls);
 
         // Add assistant response to history
-        this.addToHistory('assistant', accumulatedResponse);
+        this.addToHistory({role: 'assistant', content: accumulatedResponse});
 
         return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }
@@ -219,6 +221,22 @@ class OpenAIProvider {
             image_url: {
                 url: `data:image/png;base64,${base64Image}`
             }
+        };
+    }
+
+    createMultimodalMessage(textContent, base64Image) {
+        const content = [];
+        if (textContent) {
+            content.push({ type: 'text', text: textContent });
+        }
+
+        if (base64Image) { 
+            content.push(this.createImageContent(base64Image));
+        }
+        
+        return {
+            role: 'user',
+            content: content
         };
     }
 

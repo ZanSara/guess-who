@@ -720,10 +720,6 @@
             }
         }
 
-
-        // Track if this is the first message of the game
-        let isFirstGameMessage = true;
-
         // Function definitions for AI tools
         const ELIMINATE_CHARACTER_FUNCTION = {
             name: 'eliminateCharacter',
@@ -760,15 +756,8 @@
                 }
                 
                 console.log('Calling API for provider:', currentProvider);
-                
-                // Set system prompt if this is the first message
-                if (isFirstGameMessage) {
-                    provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
-                    isFirstGameMessage = false;
-                }
-                
-                // Create multimodal message with character image
-                const multimodalMessage = await createMultimodalMessage(message);
+                                
+                const multimodalMessage = await provider.createMultimodalMessage(message);
                 const response = await provider.callAPI(multimodalMessage, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
 
                 console.log('API response received, status:', response.status);
@@ -810,23 +799,6 @@
                             }
                         }
                     }
-                }
-                
-                // AI response is automatically stored in provider's internal history
-
-                // If the response was only tool calls with no text, prompt again for a conversational response
-                if (hasToolCalls && (!aiResponse || aiResponse.trim() === '')) {
-                    console.log('AI response was only tool calls, prompting for conversational response...');
-                    
-                    // Add a follow-up message to get conversational response
-                    const followUpMessage = "Please provide your response or next question.";
-                    
-                    const followUpMultimodal = await createMultimodalMessage(followUpMessage);
-                    const followUpResponse = await provider.callAPI(followUpMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
-                    const followUpResult = await provider.streamResponse(followUpResponse, null);
-                    const followUpText = followUpResult.response;
-
-                    // The provider automatically handles adding messages to its internal history
                 }
 
             } catch (error) {
@@ -953,9 +925,9 @@
 
 
         // Helper functions for image loading
-        async function getCharacterImageAsBase64(characterName) {
+        async function getImageAsBase64(imageUrl) {
             try {
-                const response = await fetch(`guess-who-people/${characterName}.png`);
+                const response = await fetch(imageUrl);
                 if (!response.ok) {
                     throw new Error(`Failed to load image: ${response.status}`);
                 }
@@ -971,65 +943,8 @@
                     reader.readAsDataURL(blob);
                 });
             } catch (error) {
-                console.error(`Failed to load character image ${characterName}:`, error);
+                console.error(`Failed to load image ${imageUrl}:`, error);
                 return null;
-            }
-        }
-
-        // Helper function to create multimodal message with images
-        async function createMultimodalMessage(textContent, includeBoard = false) {
-            const provider = providers[currentProvider];
-            if (!provider || !provider.createImageContent) {
-                // Fallback to text-only if provider doesn't support images
-                return textContent;
-            }
-
-            try {
-                const content = [{ type: 'text', text: textContent }];
-                
-                // Add the opponent's chosen character image (what the AI is defending)
-                if (gameState.opponentChosenCharacter) {
-                    const characterImageBase64 = await getCharacterImageAsBase64(gameState.opponentChosenCharacter);
-                    if (characterImageBase64) {
-                        const imageContent = provider.createImageContent(characterImageBase64);
-                        content.push(imageContent);
-                    }
-                }
-                
-                // For OpenAI and Anthropic, return the multimodal message structure
-                if (currentProvider === 'openai' || currentProvider === 'anthropic') {
-                    return {
-                        role: 'user',
-                        content: content
-                    };
-                }
-                
-                // For Gemini, convert to parts format
-                if (currentProvider === 'gemini') {
-                    return {
-                        role: 'user',
-                        parts: content.map(item => {
-                            if (item.type === 'text') return { text: item.text };
-                            if (item.inlineData) return item;
-                            // Handle image_url format and convert to Gemini format
-                            if (item.image_url) {
-                                const base64Data = item.image_url.url.split(',')[1];
-                                return {
-                                    inlineData: {
-                                        mimeType: 'image/png',
-                                        data: base64Data
-                                    }
-                                };
-                            }
-                            return item;
-                        })
-                    };
-                }
-                
-                return textContent; // Fallback
-            } catch (error) {
-                console.error('Error creating multimodal message:', error);
-                return textContent; // Fallback to text-only
             }
         }
 
@@ -1101,12 +1016,16 @@
                 
                 // Set system prompt for the provider
                 provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
+
+                // Add the board and the selected character to the chat history
+                provider.addToHistory(provider.createMultimodalMessage('Here is the board:', await getImageAsBase64('full-board.png')));
+                provider.addToHistory(provider.createMultimodalMessage('Here is YOUR character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
                 
                 // Show typing indicator
                 const typingIndicator = showTypingIndicator();
 
                 try {
-                    const greetingMultimodal = await createMultimodalMessage(greetingPrompt);
+                    const greetingMultimodal = await provider.createMultimodalMessage(greetingPrompt);
                     const response = await provider.callAPI(greetingMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
                     
                     // Stream the response - message element will be created when typing indicator is removed

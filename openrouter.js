@@ -347,6 +347,22 @@ class OpenRouterProvider {
             }
         };
     }
+
+    createMultimodalMessage(textContent, base64Image) {
+        const content = [];
+        if (textContent) {
+            content.push({ type: 'text', text: textContent });
+        }
+
+        if (base64Image) { 
+            content.push(this.createImageContent(base64Image));
+        }
+        
+        return {
+            role: 'user',
+            content: content
+        };
+    }
 }
 
 // Export for use in main application

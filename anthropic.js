@@ -231,6 +231,28 @@ class AnthropicProvider {
         };
     }
 
+    createMultimodalMessage(textContent, base64Images) {
+        const content = [];
+        if (textContent) {
+            content.push({ type: 'text', text: textContent });
+        }
+
+        if (base64Images && Array.isArray(base64Images)) {
+            base64Images.forEach(base64Image => {
+                if (base64Image) {
+                    content.push(this.createImageContent(base64Image));
+                }
+            });
+        } else if (base64Images) { // Handle single image for backward compatibility
+             content.push(this.createImageContent(base64Images));
+        }
+        
+        return {
+            role: 'user',
+            content: content
+        };
+    }
+
 }
 
 // Export for use in main application

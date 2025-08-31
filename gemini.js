@@ -268,6 +268,28 @@ class GeminiProvider {
         };
     }
 
+    createMultimodalMessage(textContent, base64Images) {
+        const parts = [];
+        if (textContent) {
+            parts.push({ text: textContent });
+        }
+
+        if (base64Images && Array.isArray(base64Images)) {
+            base64Images.forEach(base64Image => {
+                if (base64Image) {
+                    parts.push(this.createImageContent(base64Image));
+                }
+            });
+        } else if (base64Images) { // Handle single image for backward compatibility
+             parts.push(this.createImageContent(base64Images));
+        }
+        
+        return {
+            role: 'user',
+            parts: parts
+        };
+    }
+
 }
 
 // Export for use in main application
