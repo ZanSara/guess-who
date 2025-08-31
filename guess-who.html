@@ -9,56 +9,79 @@
     <script src="openai.js"></script>
     <script src="anthropic.js"></script>
     <script src="gemini.js"></script>
+    <script src="openrouter.js"></script>
 </head>
 <body>
     <header>
-        <h1>Play "Guess Who" with <span class="model-indicator" id="modelIndicator">...</span>!</h1>
+        <h1>Play "Guess Who" with LLMs!</h1>
     </header>
-    
-    <div class="api-key-status" id="apiKeyStatus" onclick="showApiKeyModal()">
-        ⚙️
-    </div>
 
+    <!-- Tabbed Game Container -->
     <div class="game-container">
-        <div class="board">
-            <div class="loading-board" id="loadingBoard">
-                Loading characters...
-            </div>
-            <div class="cards-grid" id="cardsGrid" style="display: none;">
-                <!-- Character cards will be loaded here -->
-            </div>
+        <div class="tab-navigation">
+            <button class="tab-button" onclick="switchTab('user-board')">Your Board</button>
+            <button class="tab-button active" onclick="switchTab('chat')">Chat</button>
+            <button class="tab-button" onclick="switchTab('llm-board')">AI's Board</button>
         </div>
-        <div class="chosen-characters">
-            <div class="chosen-character">
-                <h3>Your Character</h3>
-                <div class="chosen-card" id="userChosenCard">
-                    <img id="userChosenImage" src="" alt="">
+        
+        <div class="tab-content">
+            <!-- User's Board Tab -->
+            <div class="tab-panel" id="user-board">
+                <div class="board">
+                    <div class="loading-board" id="loadingBoard">
+                        Loading characters...
+                    </div>
+                    <div class="board-content" id="userBoardContent" style="display: none;">
+                        <div class="selected-character-row">
+                            <div class="selected-character-container" id="userSelectedContainer">
+                                <!-- User's selected character will appear here -->
+                            </div>
+                        </div>
+                        <div class="cards-grid" id="cardsGrid">
+                            <!-- Character cards will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
-            <div class="chosen-character">
-                <h3>Opponent's Character</h3>
-                <div class="chosen-card face-down" id="opponentChosenCard">
+            
+            <!-- LLM's Board Tab -->
+            <div class="tab-panel" id="llm-board">
+                <div class="llm-board">
+                    <div class="loading-llm-board" id="loadingLLMBoard">
+                        Loading AI board...
+                    </div>
+                    <div class="llm-board-content" id="llmBoardContent" style="display: none;">
+                        <div class="selected-character-row">
+                            <div class="selected-character-container" id="llmSelectedContainer">
+                                <!-- AI's selected character will appear here -->
+                            </div>
+                        </div>
+                        <div class="llm-cards-grid" id="llmCardsGrid">
+                            <!-- LLM character cards will be loaded here -->
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
-        <div class="chat-container">
-            <div class="chat-messages" id="chatMessages">
-                <!-- Chat messages will appear here -->
-            </div>
-            <div class="chat-input">
-                <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
-                <button onclick="sendMessage()">Send</button>
-            </div>
-        </div>
-        <div class="llm-board">
-            <div class="llm-board-header">
-                <h3>AI's Board</h3>
-            </div>
-            <div class="loading-llm-board" id="loadingLLMBoard">
-                Loading AI board...
-            </div>
-            <div class="llm-cards-grid" id="llmCardsGrid" style="display: none;">
-                <!-- LLM character cards will be loaded here -->
+            
+            <!-- Chat Tab -->
+            <div class="tab-panel active" id="chat">
+                <div class="chat-container">
+                    <div class="model-indicator-bar">
+                        <span>Playing against: </span>
+                        <span class="current-model" id="chatModelIndicator">...</span>
+                        <button class="settings-button" onclick="showSettings()">Settings</button>
+                    </div>
+                    <div class="chat-messages" id="chatMessages">
+                        <!-- Chat messages will appear here -->
+                    </div>
+                    <div class="chat-input" id="chatInputContainer" style="display: none;">
+                        <input type="text" id="chatInput" placeholder="Type your message..." onkeypress="handleKeyPress(event)">
+                        <button onclick="sendMessage()">Send</button>
+                    </div>
+                    <div class="start-game-container" id="startGameContainer">
+                        <button class="start-game-button" onclick="startGame()">Start!</button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -67,12 +90,10 @@
     <div id="apiKeyModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2 id="modalTitle">AI Model Configuration</h2>
+                <h2 id="modalTitle">Model Settings</h2>
                 <button class="close-modal" onclick="closeModal()">&times;</button>
             </div>
-            <p id="modalDescription">Choose your AI provider and configure your API keys:</p>
-            <div id="modalMessage"></div>
-            
+            <div id="modalMessage"></div>            
             <div class="provider-selection">
                 <div class="provider-option active" id="openaiProvider" onclick="selectProvider('openai')">
                     <div class="key-status" id="openaiKeyStatus"></div>
@@ -86,10 +107,13 @@
                     <div class="key-status" id="geminiKeyStatus"></div>
                     <strong>Google Gemini</strong><br>
                 </div>
+                <div class="provider-option" id="openrouterProvider" onclick="selectProvider('openrouter')">
+                    <div class="key-status" id="openrouterKeyStatus"></div>
+                    <strong>OpenRouter</strong><br>
+                </div>
             </div>
             
             <div class="model-selection">
-                <label for="modelSelect"><strong>Selected Model:</strong></label>
                 <select id="modelSelect" onchange="updateSelectedModel()">
                     <option value="gpt-4o">GPT-4o</option>
                     <option value="gpt-4o-mini">GPT-4o Mini</option>
@@ -134,21 +158,51 @@
                 </div>
                 <div class="key-status-text" id="geminiKeyStatusText" style="display: none;"></div>
             </div>
-            
-            <!-- System Prompt Section -->
-            <div class="system-prompt-section">
-                <h3>System Prompt</h3>
-                <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
-                <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
-                <div class="system-prompt-actions">
-                    <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
+
+            <div class="api-key-section" id="openrouterSection">
+                <h4>OpenRouter API Key</h4>
+                <div class="key-input-group">
+                    <div class="key-input-wrapper">
+                        <input type="password" id="openrouterKeyInput" placeholder="sk-or-..." />
+                        <span class="toggle-password">👁️</span>
+                    </div>
+                    <button class="validate-btn" onclick="validateProviderKey('openrouter')" id="openrouterValidateBtn">Test Key</button>
                 </div>
+                <div class="key-status-text" id="openrouterKeyStatusText" style="display: none;"></div>
             </div>
             
+            <details>
+                <summary>Advanced</summary>
+                
+                <!-- Game Options Section -->
+                <div class="game-options-section">
+                    <h3>Game Options</h3>
+                    <div class="option-item">
+                        <label class="toggle-label">
+                            <input type="checkbox" id="showLLMCharacter" onchange="toggleLLMCharacterVisibility()">
+                            <span class="toggle-slider"></span>
+                            Uncover AI's selected character
+                        </label>
+                        <p class="option-description">Flip the AI's character card to reveal its identity. It's <i>technically</i> cheating, but it's useful to make sure the LLM is not lying to you 😉</p>
+                    </div>
+                </div>
+                
+                <!-- System Prompt Section -->
+                <div class="system-prompt-section">
+                    <h3>System Prompt</h3>
+                    <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
+                    <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
+                    <div class="system-prompt-actions">
+                        <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
+                    </div>
+                </div>
+            </details>
+
             <div>
                 <button onclick="saveConfiguration()" id="saveButton">Save Configuration</button>
                 <button onclick="closeModal()">Cancel</button>
             </div>
+            
         </div>
     </div>
 
@@ -157,31 +211,36 @@
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.querySelector('.chat-input button');
         const apiKeyModal = document.getElementById('apiKeyModal');
-        const apiKeyStatus = document.getElementById('apiKeyStatus');
-        const modelIndicator = document.getElementById('modelIndicator');
         const modalMessage = document.getElementById('modalMessage');
         const saveButton = document.getElementById('saveButton');
         const modelSelect = document.getElementById('modelSelect');
+        const chatModelIndicator = document.getElementById('chatModelIndicator');
         const openaiProvider = document.getElementById('openaiProvider');
         const anthropicProvider = document.getElementById('anthropicProvider');
         const geminiProvider = document.getElementById('geminiProvider');
+        const openrouterProvider = document.getElementById('openrouterProvider');
         
         // New elements for multi-key support
         const openaiKeyInput = document.getElementById('openaiKeyInput');
         const anthropicKeyInput = document.getElementById('anthropicKeyInput');
         const geminiKeyInput = document.getElementById('geminiKeyInput');
+        const openrouterKeyInput = document.getElementById('openrouterKeyInput');
         const openaiKeyStatus = document.getElementById('openaiKeyStatus');
         const anthropicKeyStatus = document.getElementById('anthropicKeyStatus');
         const geminiKeyStatus = document.getElementById('geminiKeyStatus');
+        const openrouterKeyStatus = document.getElementById('openrouterKeyStatus');
         const openaiSection = document.getElementById('openaiSection');
         const anthropicSection = document.getElementById('anthropicSection');
         const geminiSection = document.getElementById('geminiSection');
+        const openrouterSection = document.getElementById('openrouterSection');
         const openaiKeyStatusText = document.getElementById('openaiKeyStatusText');
         const anthropicKeyStatusText = document.getElementById('anthropicKeyStatusText');
         const geminiKeyStatusText = document.getElementById('geminiKeyStatusText');
+        const openrouterKeyStatusText = document.getElementById('openrouterKeyStatusText');
         const openaiValidateBtn = document.getElementById('openaiValidateBtn');
         const anthropicValidateBtn = document.getElementById('anthropicValidateBtn');
         const geminiValidateBtn = document.getElementById('geminiValidateBtn');
+        const openrouterValidateBtn = document.getElementById('openrouterValidateBtn');
         
         // Game board elements
         const loadingBoard = document.getElementById('loadingBoard');
@@ -195,6 +254,9 @@
 
         // Current system prompt (editable)
         let GAME_SYSTEM_PROMPT = localStorage.getItem('custom-system-prompt') || DEFAULT_GAME_SYSTEM_PROMPT;
+        
+        // Game options
+        let showLLMCharacter = localStorage.getItem('show-llm-character') === 'true';
 
         // Load default system prompt from file
         async function loadDefaultSystemPrompt() {
@@ -230,7 +292,8 @@
         let apiKeys = {
             openai: localStorage.getItem('openai-api-key'),
             anthropic: localStorage.getItem('anthropic-api-key'),
-            gemini: localStorage.getItem('gemini-api-key')
+            gemini: localStorage.getItem('gemini-api-key'),
+            openrouter: localStorage.getItem('openrouter-api-key')
         };
         let isProcessing = false;
 
@@ -254,17 +317,9 @@
         const providers = {
             openai: new OpenAIProvider(),
             anthropic: new AnthropicProvider(),
-            gemini: new GeminiProvider()
+            gemini: new GeminiProvider(),
+            openrouter: new OpenRouterProvider()
         };
-
-        function updateApiKeyStatus() {
-            const hasApiKey = apiKeys[currentProvider];
-            if (hasApiKey) {
-                apiKeyStatus.className = 'api-key-status set';
-            } else {
-                apiKeyStatus.className = 'api-key-status not-set';
-            }
-        }
 
         function updateKeyStatusIndicators() {
             // Update OpenAI key status indicator
@@ -287,12 +342,21 @@
             } else {
                 geminiKeyStatus.classList.remove('has-key');
             }
+
+            // Update OpenRouter key status indicator
+            if (apiKeys.openrouter) {
+                openrouterKeyStatus.classList.add('has-key');
+            } else {
+                openrouterKeyStatus.classList.remove('has-key');
+            }
         }
 
         function updateModelIndicator() {
             const provider = providers[currentProvider];
             const modelName = provider.models.find(m => m.value === currentModel)?.name || currentModel;
-            modelIndicator.textContent = modelName;
+            if (chatModelIndicator) {
+                chatModelIndicator.textContent = modelName;
+            }
         }
 
         function selectProvider(provider) {
@@ -302,24 +366,63 @@
             openaiProvider.classList.remove('active');
             anthropicProvider.classList.remove('active');
             geminiProvider.classList.remove('active');
+            openrouterProvider.classList.remove('active');
             document.getElementById(provider + 'Provider').classList.add('active');
             
             // Update section highlighting
             openaiSection.classList.remove('current');
             anthropicSection.classList.remove('current');
             geminiSection.classList.remove('current');
+            openrouterSection.classList.remove('current');
             document.getElementById(provider + 'Section').classList.add('current');
             
             // Update model dropdown
             updateModelDropdown();
-            updateApiKeyStatus();
             updateModelIndicator();
         }
 
-        function updateModelDropdown() {
+        async function updateModelDropdown() {
             const provider = providers[currentProvider];
             modelSelect.innerHTML = '';
             
+            // For OpenRouter, load models dynamically if not already loaded
+            if (currentProvider === 'openrouter') {
+                if (!provider.modelsLoaded || provider.models.length === 0) {
+                    // Check if we have an API key first
+                    if (!provider.getApiKey()) {
+                        const noKeyOption = document.createElement('option');
+                        noKeyOption.textContent = 'API key required to load models';
+                        noKeyOption.disabled = true;
+                        modelSelect.appendChild(noKeyOption);
+                        return;
+                    }
+                    
+                    try {
+                        // Show loading indicator in dropdown
+                        const loadingOption = document.createElement('option');
+                        loadingOption.textContent = 'Loading models...';
+                        loadingOption.disabled = true;
+                        modelSelect.appendChild(loadingOption);
+                        
+                        // Load models from OpenRouter API
+                        await provider.loadModels();
+                        
+                        // Clear loading option
+                        modelSelect.innerHTML = '';
+                    } catch (error) {
+                        console.warn('Failed to load OpenRouter models:', error);
+                        // Show error message
+                        modelSelect.innerHTML = '';
+                        const errorOption = document.createElement('option');
+                        errorOption.textContent = 'Failed to load models - check API key';
+                        errorOption.disabled = true;
+                        modelSelect.appendChild(errorOption);
+                        return;
+                    }
+                }
+            }
+            
+            // Add all available models to dropdown
             provider.models.forEach(model => {
                 const option = document.createElement('option');
                 option.value = model.value;
@@ -342,6 +445,8 @@
             const newModel = modelSelect.value;
             if (newModel !== currentModel) {
                 currentModel = newModel;
+                // Update the model indicator
+                updateModelIndicator();
                 // Save the new model selection
                 localStorage.setItem('ai-model', currentModel);
                 // Reload the page to ensure clean state with new model
@@ -349,12 +454,8 @@
             }
         }
 
-        function showApiKeyModal() {
+        function showSettings() {
             const modalTitle = document.getElementById('modalTitle');
-            const modalDescription = document.getElementById('modalDescription');
-            
-            modalTitle.textContent = 'Settings';
-            modalDescription.textContent = 'Configure your AI provider, API keys, and system prompt:';
             
             // Set up the modal with current configuration
             selectProvider(currentProvider);
@@ -370,9 +471,15 @@
             if (apiKeys.gemini) {
                 geminiKeyInput.value = apiKeys.gemini;
             }
+            if (apiKeys.openrouter) {
+                openrouterKeyInput.value = apiKeys.openrouter;
+            }
             
             // Populate system prompt textarea
             systemPromptTextarea.value = GAME_SYSTEM_PROMPT;
+            
+            // Set checkbox state for LLM character visibility
+            document.getElementById('showLLMCharacter').checked = showLLMCharacter;
             
             // Update key status indicators
             updateKeyStatusIndicators();
@@ -398,6 +505,7 @@
             openaiKeyStatusText.style.display = 'none';
             anthropicKeyStatusText.style.display = 'none';
             geminiKeyStatusText.style.display = 'none';
+            openrouterKeyStatusText.style.display = 'none';
         }
 
         function showKeyStatus(provider, message, status) {
@@ -406,8 +514,10 @@
                 statusElement = openaiKeyStatusText;
             } else if (provider === 'anthropic') {
                 statusElement = anthropicKeyStatusText;
-            } else {
+            } else if (provider === 'gemini') {
                 statusElement = geminiKeyStatusText;
+            } else if (provider === 'openrouter') {
+                statusElement = openrouterKeyStatusText;
             }
             statusElement.textContent = message;
             statusElement.className = `key-status-text ${status}`;
@@ -422,9 +532,12 @@
             } else if (provider === 'anthropic') {
                 keyInput = anthropicKeyInput;
                 validateBtn = anthropicValidateBtn;
-            } else {
+            } else if (provider === 'gemini') {
                 keyInput = geminiKeyInput;
                 validateBtn = geminiValidateBtn;
+            } else if (provider === 'openrouter') {
+                keyInput = openrouterKeyInput;
+                validateBtn = openrouterValidateBtn;
             }
             const key = keyInput.value.trim();
             const providerInstance = providers[provider];
@@ -444,12 +557,19 @@
             showKeyStatus(provider, 'Testing API key...', 'testing');
 
             try {
-                // Get a default model for testing
-                const testModel = providerInstance.models[0].value;
+                // For OpenRouter, no model is needed for validation
+                // For other providers, get a default model for testing
+                const testModel = provider === 'openrouter' ? null : providerInstance.models[0]?.value;
                 
                 await providerInstance.validateApiKey(key, testModel);
 
                 showKeyStatus(provider, '✓ API key is valid!', 'valid');
+                
+                // If this is OpenRouter and validation succeeded, update the model dropdown
+                if (provider === 'openrouter' && currentProvider === 'openrouter') {
+                    await updateModelDropdown();
+                }
+                
                 return true;
 
             } catch (error) {
@@ -465,6 +585,7 @@
             const openaiKey = openaiKeyInput.value.trim();
             const anthropicKey = anthropicKeyInput.value.trim();
             const geminiKey = geminiKeyInput.value.trim();
+            const openrouterKey = openrouterKeyInput.value.trim();
             
             // Validate that the selected provider has a key
             let selectedProviderKey;
@@ -472,8 +593,10 @@
                 selectedProviderKey = openaiKey;
             } else if (currentProvider === 'anthropic') {
                 selectedProviderKey = anthropicKey;
-            } else {
+            } else if (currentProvider === 'gemini') {
                 selectedProviderKey = geminiKey;
+            } else if (currentProvider === 'openrouter') {
+                selectedProviderKey = openrouterKey;
             }
 
             if (!selectedProviderKey) {
@@ -512,6 +635,15 @@
                     geminiKeyInput.value = apiKeys.gemini;
                 }
 
+                // Save OpenRouter key if provided
+                if (openrouterKey) {
+                    apiKeys.openrouter = openrouterKey;
+                    localStorage.setItem('openrouter-api-key', openrouterKey);
+                } else if (apiKeys.openrouter) {
+                    // Keep existing key if no new one provided
+                    openrouterKeyInput.value = apiKeys.openrouter;
+                }
+
                 // Save system prompt
                 const newPrompt = systemPromptTextarea.value.trim();
                 if (newPrompt) {
@@ -527,7 +659,6 @@
                 localStorage.setItem('ai-model', currentModel);
 
                 // Update UI
-                updateApiKeyStatus();
                 updateModelIndicator();
                 updateKeyStatusIndicators();
 
@@ -578,12 +709,16 @@
 
         function setProcessingState(processing) {
             isProcessing = processing;
-            sendButton.disabled = processing;
-            chatInput.disabled = processing;
-            if (processing) {
-                sendButton.textContent = 'Sending...';
-            } else {
-                sendButton.textContent = 'Send';
+            if (sendButton) {
+                sendButton.disabled = processing;
+                if (processing) {
+                    sendButton.textContent = 'Sending...';
+                } else {
+                    sendButton.textContent = 'Send';
+                }
+            }
+            if (chatInput) {
+                chatInput.disabled = processing;
             }
         }
 
@@ -630,7 +765,7 @@
             
             if (!apiKeys[currentProvider]) {
                 console.log('No API key found, showing modal');
-                showApiKeyModal();
+                showSettings();
                 return;
             }
 
@@ -657,18 +792,8 @@
 
                 console.log('API response received, status:', response.status);
 
-                // Remove typing indicator and create message element
-                if (typingIndicator && typingIndicator.parentNode) {
-                    typingIndicator.remove();
-                }
-                
-                const aiMessageElement = document.createElement('div');
-                aiMessageElement.className = 'message gpt-message';
-                aiMessageElement.textContent = '';
-                chatMessages.appendChild(aiMessageElement);
-
-                // Stream the response
-                const result = await provider.streamResponse(response, aiMessageElement);
+                // Stream the response - message element will be created when typing indicator is removed
+                const result = await provider.streamResponse(response, null, typingIndicator);
                 const aiResponse = result.response;
                 const hasToolCalls = result.hasToolCalls;
                 const toolCalls = result.toolCalls || [];
@@ -741,8 +866,7 @@
                 if (error.message.includes('Invalid API key')) {
                     apiKeys[currentProvider] = null;
                     localStorage.removeItem(`${currentProvider}-api-key`);
-                    updateApiKeyStatus();
-                    showApiKeyModal();
+                    showSettings();
                 }
             } finally {
                 setProcessingState(false);
@@ -967,23 +1091,20 @@
             gameState.userChosenCharacter = shuffledCharacters[0];
             gameState.opponentChosenCharacter = shuffledCharacters[1];
             
-            displayChosenCharacters();
+            console.log(`User's character: ${gameState.userChosenCharacter}`);
+            console.log(`Opponent's character: ${gameState.opponentChosenCharacter}`);
         }
 
-        function displayChosenCharacters() {
-            // Display user's chosen character
-            const userChosenImage = document.getElementById('userChosenImage');
+        function startGame() {
+            // Hide the start game container and show the chat input
+            const startGameContainer = document.getElementById('startGameContainer');
+            const chatInputContainer = document.getElementById('chatInputContainer');
             
-            userChosenImage.src = `guess-who-people/${gameState.userChosenCharacter}.png`;
-            userChosenImage.alt = gameState.userChosenCharacter;
+            startGameContainer.style.display = 'none';
+            chatInputContainer.style.display = 'flex';
             
-            userChosenImage.onerror = () => {
-                userChosenImage.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMTIwIiBoZWlnaHQ9IjE2MCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZGRkIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPk5vIEltYWdlPC90ZXh0Pjwvc3ZnPg==';
-            };
-
-            // Opponent's character stays face-down, but we store the name internally
-            console.log(`User's character: ${gameState.userChosenCharacter}`);
-            console.log(`Opponent's character: ${gameState.opponentChosenCharacter} (hidden)`);
+            // Generate the initial greeting
+            generateInitialGreeting();
         }
 
         async function generateInitialGreeting() {
@@ -991,7 +1112,7 @@
                 // Check if we have a valid provider and API key
                 if (!apiKeys[currentProvider]) {
                     console.log('No API key available for initial greeting');
-                    showApiKeyModal();
+                    showSettings();
                     return;
                 }
 
@@ -1017,18 +1138,8 @@
                     const greetingMultimodal = await createMultimodalMessage(greetingPrompt);
                     const response = await provider.callAPI(greetingMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
                     
-                    // Remove typing indicator
-                    if (typingIndicator && typingIndicator.parentNode) {
-                        typingIndicator.remove();
-                    }
-                    
-                    // Create message element and stream the response
-                    const greetingMessageElement = document.createElement('div');
-                    greetingMessageElement.className = 'message gpt-message';
-                    greetingMessageElement.textContent = '';
-                    chatMessages.appendChild(greetingMessageElement);
-
-                    const result = await provider.streamResponse(response, greetingMessageElement);
+                    // Stream the response - message element will be created when typing indicator is removed
+                    const result = await provider.streamResponse(response, null, typingIndicator);
                     console.log('Initial greeting generated successfully (canary passed)');
                     
                 } catch (error) {
@@ -1045,8 +1156,7 @@
                     if (error.message.includes('Invalid API key')) {
                         apiKeys[currentProvider] = null;
                         localStorage.removeItem(`${currentProvider}-api-key`);
-                        updateApiKeyStatus();
-                        showApiKeyModal();
+                        showSettings();
                     }
                 }
 
@@ -1069,7 +1179,7 @@
                 // Select random characters for user and opponent
                 selectRandomCharacters();
                 
-                // Shuffle the characters for random order (same order for both boards)
+                // Shuffle all characters for the main grid (including selected ones)
                 gameState.characters = shuffleArray(characters);
                 gameState.eliminated.clear();
                 gameState.llmEliminated.clear();
@@ -1077,8 +1187,20 @@
                 // Clear existing cards
                 cardsGrid.innerHTML = '';
                 llmCardsGrid.innerHTML = '';
+                document.getElementById('userSelectedContainer').innerHTML = '';
+                document.getElementById('llmSelectedContainer').innerHTML = '';
 
-                // Create and add character cards for both boards
+                // Create selected character cards for top rows
+                const userSelectedCard = createCharacterCard(gameState.userChosenCharacter);
+                userSelectedCard.classList.add('top-selected-character');
+                userSelectedCard.onclick = null; // Remove click functionality for top row
+                document.getElementById('userSelectedContainer').appendChild(userSelectedCard);
+
+                const llmSelectedCard = createLLMCharacterCard(gameState.opponentChosenCharacter);
+                llmSelectedCard.classList.add('top-selected-character');
+                document.getElementById('llmSelectedContainer').appendChild(llmSelectedCard);
+
+                // Create and add all character cards for main grids (including selected characters)
                 gameState.characters.forEach(name => {
                     // User's board
                     const userCard = createCharacterCard(name);
@@ -1092,14 +1214,14 @@
                 // Clear chat messages for new game
                 chatMessages.innerHTML = '';
 
-                // Generate initial LLM greeting message as a "canary" test
-                await generateInitialGreeting();
-
-                // Show both grids and hide loading
+                // Show both board contents and hide loading
                 loadingBoard.style.display = 'none';
-                cardsGrid.style.display = 'grid';
+                document.getElementById('userBoardContent').style.display = 'block';
                 loadingLLMBoard.style.display = 'none';
-                llmCardsGrid.style.display = 'grid';
+                document.getElementById('llmBoardContent').style.display = 'block';
+                
+                // Apply LLM character visibility setting
+                updateLLMCharacterVisibility();
 
             } catch (error) {
                 console.error('Error loading game board:', error);
@@ -1128,7 +1250,6 @@
             // Load default system prompt first
             await loadDefaultSystemPrompt();
             
-            updateApiKeyStatus();
             updateModelIndicator();
             updateKeyStatusIndicators();
             
@@ -1137,10 +1258,48 @@
             setupPasswordToggle();
 
             if (!apiKeys[currentProvider]) {
-                showApiKeyModal();
+                showSettings();
             }
         }
         
+        // Tab switching functionality
+        function switchTab(tabName) {
+            // Remove active class from all tab buttons
+            document.querySelectorAll('.tab-button').forEach(button => {
+                button.classList.remove('active');
+            });
+            
+            // Remove active class from all tab panels
+            document.querySelectorAll('.tab-panel').forEach(panel => {
+                panel.classList.remove('active');
+            });
+            
+            // Add active class to clicked button
+            event.target.classList.add('active');
+            
+            // Show the selected tab panel
+            document.getElementById(tabName).classList.add('active');
+        }
+
+        // Toggle LLM character visibility function
+        function toggleLLMCharacterVisibility() {
+            showLLMCharacter = document.getElementById('showLLMCharacter').checked;
+            localStorage.setItem('show-llm-character', showLLMCharacter.toString());
+            updateLLMCharacterVisibility();
+        }
+
+        // Update LLM character visibility function
+        function updateLLMCharacterVisibility() {
+            const llmSelectedCard = document.querySelector('#llmSelectedContainer .llm-character-card');
+            if (llmSelectedCard) {
+                if (showLLMCharacter) {
+                    llmSelectedCard.classList.remove('hidden-character');
+                } else {
+                    llmSelectedCard.classList.add('hidden-character');
+                }
+            }
+        }
+
         // Start the app
         initializeApp();
     </script>

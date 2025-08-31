@@ -121,13 +121,14 @@ class AnthropicProvider {
         return response;
     }
 
-    async streamResponse(response, messageElement) {
+    async streamResponse(response, messageElement, typingIndicator = null) {
         const reader = response.body.getReader();
         const decoder = new TextDecoder();
         let accumulatedResponse = '';
         let hasToolCalls = false;
         let toolCalls = [];
         let currentToolCall = null;
+        let typingIndicatorRemoved = false;
 
         try {
             while (true) {
@@ -146,8 +147,24 @@ class AnthropicProvider {
                         try {
                             const parsed = JSON.parse(data);
                             if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
+                                // Remove typing indicator and create message element on first content
+                                if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
+                                    typingIndicator.remove();
+                                    typingIndicatorRemoved = true;
+                                    
+                                    // Create message element if not provided
+                                    if (!messageElement) {
+                                        messageElement = document.createElement('div');
+                                        messageElement.className = 'message gpt-message';
+                                        messageElement.textContent = '';
+                                        document.getElementById('chatMessages').appendChild(messageElement);
+                                        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                                    }
+                                }
                                 accumulatedResponse += parsed.delta.text;
-                                messageElement.textContent = accumulatedResponse;
+                                if (messageElement) {
+                                    messageElement.textContent = accumulatedResponse;
+                                }
                             }
                             if (parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use') {
                                 hasToolCalls = true;
@@ -175,6 +192,18 @@ class AnthropicProvider {
             }
         } finally {
             reader.releaseLock();
+            // Remove typing indicator if it's still there and create empty message element if needed
+            if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
+                typingIndicator.remove();
+                // Create message element if not created yet
+                if (!messageElement) {
+                    messageElement = document.createElement('div');
+                    messageElement.className = 'message gpt-message';
+                    messageElement.textContent = accumulatedResponse || '';
+                    document.getElementById('chatMessages').appendChild(messageElement);
+                    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                }
+            }
         }
 
         // Add assistant response to history

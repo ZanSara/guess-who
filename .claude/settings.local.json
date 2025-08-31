@@ -1,8 +1,9 @@
 {
-  "enableAllProjectMcpServers": false,
   "permissions": {
     "allow": [
-      "WebFetch(domain:ai.google.dev)"
+      "WebFetch(domain:ai.google.dev)",
+      "WebFetch(domain:openrouter.ai)"
     ]
-  }
+  },
+  "enableAllProjectMcpServers": false
 }
