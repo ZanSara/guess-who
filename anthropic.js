@@ -4,12 +4,7 @@ class AnthropicProvider {
         this.name = 'anthropic';
         this.displayName = 'Anthropic';
         this.keyPrefix = 'sk-ant-';
-        this.models = [
-            { value: 'claude-opus-4-1', name: 'Claude Opus 4.1' },
-            { value: 'claude-opus-4-0', name: 'Claude Opus 4.0' },
-            { value: 'claude-sonnet-4-0', name: 'Claude Sonnet 4.0' },
-            { value: 'claude-3-7-sonnet-latest', name: 'Claude Sonnet 3.7' },
-        ];
+        this.exampleModels = "claude-opus-4-1, claude-opus-4-0, claude-sonnet-4-0, claude-3-7-sonnet-latest"
         this.defaultModel = 'claude-sonnet-4-0';
         this.conversationHistory = [];
         this.systemPrompt = '';
@@ -56,8 +51,9 @@ class AnthropicProvider {
         }
     }
 
-    addToHistory(role, content) {
-        this.conversationHistory.push({ role, content });
+    addToHistory(message) {
+        // See createMultimodalMessage()
+        this.conversationHistory.push(message);
     }
 
     clearHistory() {
@@ -74,7 +70,7 @@ class AnthropicProvider {
     async callAPI(message, model, tools = null) {
         // Add user message to history - handle both string and multimodal content
         if (typeof message === 'string') {
-            this.addToHistory('user', message);
+            this.addToHistory({role: 'user', content: message});
         } else {
             // Handle multimodal message (object with content array)
             this.conversationHistory.push(message);
@@ -84,12 +80,16 @@ class AnthropicProvider {
             model: model,
             max_tokens: 4096,
             messages: [...this.conversationHistory], // Use internal history
-            stream: true
+            stream: false
         };
 
-        // Add tools if provided
+        // Add tools if provided - convert OpenAI format to Anthropic format
         if (tools && tools.length > 0) {
-            params.tools = tools;
+            params.tools = tools.map(tool => ({
+                name: tool.name,
+                description: tool.description,
+                input_schema: tool.parameters
+            }));
         }
 
         // Add system prompt as separate parameter for Anthropic
@@ -122,92 +122,50 @@ class AnthropicProvider {
     }
 
     async streamResponse(response, messageElement, typingIndicator = null) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // Parse the non-streaming response
+        const data = await response.json();
+        
         let accumulatedResponse = '';
         let hasToolCalls = false;
         let toolCalls = [];
-        let currentToolCall = null;
-        let typingIndicatorRemoved = false;
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-                        
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.text) {
-                                // Remove typing indicator and create message element on first content
-                                if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                                    typingIndicator.remove();
-                                    typingIndicatorRemoved = true;
-                                    
-                                    // Create message element if not provided
-                                    if (!messageElement) {
-                                        messageElement = document.createElement('div');
-                                        messageElement.className = 'message gpt-message';
-                                        messageElement.textContent = '';
-                                        document.getElementById('chatMessages').appendChild(messageElement);
-                                        document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-                                    }
-                                }
-                                accumulatedResponse += parsed.delta.text;
-                                if (messageElement) {
-                                    messageElement.textContent = accumulatedResponse;
-                                }
-                            }
-                            if (parsed.type === 'content_block_start' && parsed.content_block && parsed.content_block.type === 'tool_use') {
-                                hasToolCalls = true;
-                                currentToolCall = {
-                                    id: parsed.content_block.id,
-                                    type: 'function',
-                                    function: {
-                                        name: parsed.content_block.name,
-                                        arguments: ''
-                                    }
-                                };
-                            }
-                            if (parsed.type === 'content_block_delta' && parsed.delta && parsed.delta.partial_json && currentToolCall) {
-                                currentToolCall.function.arguments += parsed.delta.partial_json;
-                            }
-                            if (parsed.type === 'content_block_stop' && currentToolCall) {
-                                toolCalls.push(currentToolCall);
-                                currentToolCall = null;
-                            }
-                        } catch (e) {
-                            // Skip invalid JSON
+        // Remove typing indicator
+        if (typingIndicator && typingIndicator.parentNode) {
+            typingIndicator.remove();
+        }
+
+        // Extract response content and tool calls from Anthropic format
+        if (data.content && data.content.length > 0) {
+            for (const block of data.content) {
+                if (block.type === 'text') {
+                    accumulatedResponse += block.text;
+                } else if (block.type === 'tool_use') {
+                    hasToolCalls = true;
+                    toolCalls.push({
+                        id: block.id,
+                        type: 'function',
+                        function: {
+                            name: block.name,
+                            arguments: JSON.stringify(block.input)
                         }
-                    }
+                    });
                 }
             }
-        } finally {
-            reader.releaseLock();
-            // Remove typing indicator if it's still there and create empty message element if needed
-            if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                typingIndicator.remove();
-                // Create message element if not created yet
-                if (!messageElement) {
-                    messageElement = document.createElement('div');
-                    messageElement.className = 'message gpt-message';
-                    messageElement.textContent = accumulatedResponse || '';
-                    document.getElementById('chatMessages').appendChild(messageElement);
-                    document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-                }
+            
+            // Create message element if not provided
+            if (!messageElement) {
+                messageElement = document.createElement('div');
+                messageElement.className = 'message gpt-message';
+                messageElement.textContent = accumulatedResponse;
+                document.getElementById('chatMessages').appendChild(messageElement);
+                document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+            } else {
+                messageElement.textContent = accumulatedResponse;
             }
         }
 
         // Add assistant response to history
-        this.addToHistory('assistant', accumulatedResponse);
+        this.addToHistory({role: 'assistant', content: accumulatedResponse});
 
         return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }

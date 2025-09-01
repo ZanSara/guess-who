@@ -4,11 +4,7 @@ class GeminiProvider {
         this.name = 'gemini';
         this.displayName = 'Google Gemini';
         this.keyPrefix = 'AIza';
-        this.models = [
-            { value: 'gemini-2.5-pro', name: 'Gemini 2.5 Pro' },
-            { value: 'gemini-2.5-flash', name: 'Gemini 2.5 Flash' },
-            { value: 'gemini-2.5-flash-lite', name: 'Gemini 2.5 Flash Lite' }
-        ];
+        this.exampleModels = "gemini-2.5-pro, gemini-2.5-flash, gemini-2.5-flash-lite"
         this.defaultModel = 'gemini-2.5-flash';
         this.conversationHistory = [];
         this.systemPrompt = '';
@@ -34,13 +30,9 @@ class GeminiProvider {
         }
     }
 
-    addToHistory(role, content) {
-        // Convert standard roles to Gemini format
-        const geminiRole = role === 'assistant' ? 'model' : role;
-        this.conversationHistory.push({
-            role: geminiRole,
-            parts: [{ text: content }]
-        });
+    addToHistory(message) {
+        // See createMultimodalMessage()
+        this.conversationHistory.push(message);
     }
 
     clearHistory() {
@@ -57,24 +49,13 @@ class GeminiProvider {
     async callAPI(message, model, tools = null) {
         // Add user message to history - handle both string and multimodal content
         if (typeof message === 'string') {
-            this.addToHistory('user', message);
-        } else if (message.parts) {
-            // Handle Gemini-style multimodal message (object with parts array)
-            const geminiMessage = {
+            this.addToHistory({
                 role: 'user',
-                parts: message.parts
-            };
-            this.conversationHistory.push(geminiMessage);
-        } else {
-            // Handle other multimodal formats and convert to Gemini format
-            this.conversationHistory.push({
-                role: 'user',
-                parts: message.content ? message.content.map(item => {
-                    if (item.type === 'text') return { text: item.text };
-                    if (item.type === 'image') return item.source ? { inlineData: { mimeType: item.source.media_type, data: item.source.data } } : item;
-                    return item;
-                }) : [{ text: JSON.stringify(message) }]
+                parts: [{ text: message }]
             });
+        } else {
+            // Handle multimodal message (object with parts array from createMultimodalMessage)
+            this.conversationHistory.push(message);
         }
 
         const params = {
@@ -99,7 +80,7 @@ class GeminiProvider {
             };
         }
 
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:streamGenerateContent?key=${this.getApiKey()}`, {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${this.getApiKey()}`, {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
@@ -122,131 +103,57 @@ class GeminiProvider {
     }
 
     async streamResponse(response, messageElement, typingIndicator = null) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // Parse the non-streaming response
+        const data = await response.json();
+        
         let accumulatedResponse = '';
         let hasToolCalls = false;
         let toolCalls = [];
-        let buffer = '';
-        let bracketCount = 0;
-        let inJsonObject = false;
-        let currentJsonObject = '';
-        let typingIndicatorRemoved = false;
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
-                
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                buffer += chunk;
+        // Remove typing indicator
+        if (typingIndicator && typingIndicator.parentNode) {
+            typingIndicator.remove();
+        }
 
-                // Process character by character to properly handle JSON objects
-                for (let i = 0; i < buffer.length; i++) {
-                    const char = buffer[i];
-                    
-                    if (char === '{') {
-                        if (!inJsonObject) {
-                            inJsonObject = true;
-                            currentJsonObject = '';
-                            bracketCount = 0;
-                        }
-                        bracketCount++;
-                        currentJsonObject += char;
-                    } else if (char === '}') {
-                        if (inJsonObject) {
-                            bracketCount--;
-                            currentJsonObject += char;
-                            
-                            // Complete JSON object found
-                            if (bracketCount === 0) {
-                                try {
-                                    const parsed = JSON.parse(currentJsonObject);
-                                    
-                                    // Extract text from Gemini response format
-                                    if (parsed.candidates && parsed.candidates.length > 0) {
-                                        const candidate = parsed.candidates[0];
-                                        if (candidate.content && candidate.content.parts) {
-                                            for (const part of candidate.content.parts) {
-                                                if (part.text) {
-                                                    // Remove typing indicator and create message element on first content
-                                                    if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                                                        typingIndicator.remove();
-                                                        typingIndicatorRemoved = true;
-                                                        
-                                                        // Create message element if not provided
-                                                        if (!messageElement) {
-                                                            messageElement = document.createElement('div');
-                                                            messageElement.className = 'message gpt-message';
-                                                            messageElement.textContent = '';
-                                                            document.getElementById('chatMessages').appendChild(messageElement);
-                                                            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-                                                        }
-                                                    }
-                                                    accumulatedResponse += part.text;
-                                                    if (messageElement) {
-                                                        messageElement.textContent = accumulatedResponse;
-                                                    }
-                                                }
-                                                if (part.functionCall) {
-                                                    hasToolCalls = true;
-                                                    // Convert Gemini format to standard format
-                                                    toolCalls.push({
-                                                        id: `gemini_${Date.now()}_${toolCalls.length}`,
-                                                        type: 'function',
-                                                        function: {
-                                                            name: part.functionCall.name,
-                                                            arguments: JSON.stringify(part.functionCall.args || {})
-                                                        }
-                                                    });
-                                                }
-                                            }
-                                        }
-                                    }
-                                } catch (e) {
-                                    // Skip invalid JSON objects
-                                    console.warn('Failed to parse Gemini JSON object:', currentJsonObject.substring(0, 100) + '...', e);
-                                }
-                                
-                                inJsonObject = false;
-                                currentJsonObject = '';
+        // Extract response content and tool calls from Gemini format
+        if (data.candidates && data.candidates.length > 0) {
+            const candidate = data.candidates[0];
+            if (candidate.content && candidate.content.parts) {
+                for (const part of candidate.content.parts) {
+                    if (part.text) {
+                        accumulatedResponse += part.text;
+                    } else if (part.functionCall) {
+                        hasToolCalls = true;
+                        // Convert Gemini format to standard format
+                        toolCalls.push({
+                            id: `gemini_${Date.now()}_${toolCalls.length}`,
+                            type: 'function',
+                            function: {
+                                name: part.functionCall.name,
+                                arguments: JSON.stringify(part.functionCall.args || {})
                             }
-                        }
-                    } else if (inJsonObject) {
-                        currentJsonObject += char;
+                        });
                     }
-                    // Skip characters outside JSON objects (like array brackets, commas, whitespace)
                 }
-
-                // Keep only the unprocessed part of the buffer
-                buffer = '';
-                if (inJsonObject) {
-                    // If we're in the middle of a JSON object, keep the current object in buffer
-                    buffer = currentJsonObject;
-                    currentJsonObject = '';
-                    inJsonObject = false;
-                    bracketCount = 0;
-                }
-            }
-        } finally {
-            reader.releaseLock();
-            // Remove typing indicator if it's still there and create empty message element if needed
-            if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                typingIndicator.remove();
-                // Create message element if not created yet
+                
+                // Create message element if not provided
                 if (!messageElement) {
                     messageElement = document.createElement('div');
                     messageElement.className = 'message gpt-message';
-                    messageElement.textContent = accumulatedResponse || '';
+                    messageElement.textContent = accumulatedResponse;
                     document.getElementById('chatMessages').appendChild(messageElement);
                     document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                } else {
+                    messageElement.textContent = accumulatedResponse;
                 }
             }
         }
 
         // Add assistant response to history
-        this.addToHistory('assistant', accumulatedResponse);
+        this.addToHistory({
+            role: 'model',
+            parts: [{ text: accumulatedResponse }]
+        });
 
         return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }

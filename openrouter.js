@@ -4,6 +4,7 @@ class OpenRouterProvider {
         this.name = 'openrouter';
         this.displayName = 'OpenRouter';
         this.keyPrefix = 'sk-or-';
+        this.exampleModels = "openai/gpt-4o, anthropic/claude-3-5-sonnet, google/gemini-pro";
         this.models = []; // Will be populated dynamically
         this.defaultModel = null; // Will be set after loading models
         this.conversationHistory = [];
@@ -162,8 +163,9 @@ class OpenRouterProvider {
         }
     }
 
-    addToHistory(role, content) {
-        this.conversationHistory.push({ role, content });
+    addToHistory(message) {
+        // See createMultimodalMessage()
+        this.conversationHistory.push(message);
     }
 
     clearHistory() {
@@ -179,7 +181,7 @@ class OpenRouterProvider {
     async callAPI(message, model, tools = null) {
         // Add user message to history - handle both string and multimodal content
         if (typeof message === 'string') {
-            this.addToHistory('user', message);
+            this.addToHistory({role: 'user', content: message});
         } else {
             // Handle multimodal message (object with content array)
             this.conversationHistory.push(message);
@@ -188,7 +190,7 @@ class OpenRouterProvider {
         const params = {
             model: model,
             messages: [...this.conversationHistory], // Use internal history
-            stream: true
+            stream: false
         };
 
         // Add tools if provided
@@ -228,105 +230,46 @@ class OpenRouterProvider {
     }
 
     async streamResponse(response, messageElement, typingIndicator = null) {
-        const reader = response.body.getReader();
-        const decoder = new TextDecoder();
+        // Parse the non-streaming response
+        const data = await response.json();
+        
         let accumulatedResponse = '';
         let hasToolCalls = false;
         let toolCalls = [];
-        let currentToolCalls = {};
-        let typingIndicatorRemoved = false;
 
-        try {
-            while (true) {
-                const { done, value } = await reader.read();
+        // Remove typing indicator
+        if (typingIndicator && typingIndicator.parentNode) {
+            typingIndicator.remove();
+        }
+
+        // Extract response content and tool calls from the complete response (OpenAI format)
+        if (data.choices && data.choices[0]) {
+            const choice = data.choices[0];
+            const message = choice.message;
+            
+            if (message.content) {
+                accumulatedResponse = message.content;
                 
-                if (done) break;
-                
-                const chunk = decoder.decode(value, { stream: true });
-                const lines = chunk.split('\n');
-                
-                for (const line of lines) {
-                    if (line.startsWith('data: ')) {
-                        const data = line.slice(6);
-                        if (data === '[DONE]') continue;
-                        
-                        try {
-                            const parsed = JSON.parse(data);
-                            if (parsed.choices && parsed.choices[0] && parsed.choices[0].delta) {
-                                const delta = parsed.choices[0].delta;
-                                if (delta.content) {
-                                    // Remove typing indicator and create message element on first content
-                                    if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                                        typingIndicator.remove();
-                                        typingIndicatorRemoved = true;
-                                        
-                                        // Create message element if not provided
-                                        if (!messageElement) {
-                                            messageElement = document.createElement('div');
-                                            messageElement.className = 'message gpt-message';
-                                            messageElement.textContent = '';
-                                            document.getElementById('chatMessages').appendChild(messageElement);
-                                            document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
-                                        }
-                                    }
-                                    accumulatedResponse += delta.content;
-                                    if (messageElement) {
-                                        messageElement.textContent = accumulatedResponse;
-                                    }
-                                }
-                                if (delta.tool_calls) {
-                                    hasToolCalls = true;
-                                    // Process tool calls streaming (same as OpenAI format)
-                                    for (const toolCall of delta.tool_calls) {
-                                        const id = toolCall.id;
-                                        if (!currentToolCalls[id]) {
-                                            currentToolCalls[id] = {
-                                                id: id,
-                                                type: toolCall.type || 'function',
-                                                function: {
-                                                    name: toolCall.function?.name || '',
-                                                    arguments: toolCall.function?.arguments || ''
-                                                }
-                                            };
-                                        } else {
-                                            // Append to existing tool call
-                                            if (toolCall.function?.name) {
-                                                currentToolCalls[id].function.name += toolCall.function.name;
-                                            }
-                                            if (toolCall.function?.arguments) {
-                                                currentToolCalls[id].function.arguments += toolCall.function.arguments;
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        } catch (e) {
-                            // Skip invalid JSON
-                        }
-                    }
-                }
-            }
-        } finally {
-            reader.releaseLock();
-            // Remove typing indicator if it's still there and create empty message element if needed
-            if (!typingIndicatorRemoved && typingIndicator && typingIndicator.parentNode) {
-                typingIndicator.remove();
-                // Create message element if not created yet
+                // Create message element if not provided
                 if (!messageElement) {
                     messageElement = document.createElement('div');
                     messageElement.className = 'message gpt-message';
-                    messageElement.textContent = accumulatedResponse || '';
+                    messageElement.textContent = accumulatedResponse;
                     document.getElementById('chatMessages').appendChild(messageElement);
                     document.getElementById('chatMessages').scrollTop = document.getElementById('chatMessages').scrollHeight;
+                } else {
+                    messageElement.textContent = accumulatedResponse;
                 }
+            }
+            
+            if (message.tool_calls && message.tool_calls.length > 0) {
+                hasToolCalls = true;
+                toolCalls = message.tool_calls;
             }
         }
 
-        // Convert accumulated tool calls to array
-        toolCalls = Object.values(currentToolCalls);
-
         // Add assistant response to history
-        this.addToHistory('assistant', accumulatedResponse);
+        this.addToHistory({role: 'assistant', content: accumulatedResponse});
 
         return { response: accumulatedResponse, hasToolCalls, toolCalls };
     }

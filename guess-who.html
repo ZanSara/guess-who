@@ -56,7 +56,7 @@
                                 <!-- AI's selected character will appear here -->
                             </div>
                         </div>
-                        <div class="llm-cards-grid" id="llmCardsGrid">
+                        <div class="cards-grid" id="llmCardsGrid">
                             <!-- LLM character cards will be loaded here -->
                         </div>
                     </div>
@@ -114,17 +114,16 @@
             </div>
             
             <div class="model-selection">
-                <select id="modelSelect" onchange="updateSelectedModel()">
-                    <option value="gpt-4o">GPT-4o</option>
-                    <option value="gpt-4o-mini">GPT-4o Mini</option>
-                    <option value="gpt-5">GPT-5</option>
-                    <option value="gpt-5-mini">GPT-5 Mini</option>
-                    <option value="gpt-5-nano">GPT-5 Nano</option>
-                </select>
+                <label for="modelInput">Model Name (examples: <span id="modelNameExamples"></span>):</label>
+                <div class="key-input-group">
+                    <input type="text" id="modelInput" placeholder="..." oninput="updateSelectedModel()">
+                    <button type="button" class="validate-btn" id="modelValidateBtn" onclick="validateModel()">Test Model</button>
+                </div>
+                <div class="key-status-text" id="modelStatusText" style="display: none;"></div>
             </div>
 
             <div class="api-key-section current" id="openaiSection">
-                <h4>OpenAI API Key</h4>
+                <h4>API Key</h4>
                 <div class="key-input-group">
                     <div class="key-input-wrapper">
                         <input type="password" id="openaiKeyInput" placeholder="sk-..." />
@@ -136,7 +135,7 @@
             </div>
 
             <div class="api-key-section" id="anthropicSection">
-                <h4>Anthropic API Key</h4>
+                <h4>API Key</h4>
                 <div class="key-input-group">
                     <div class="key-input-wrapper">
                         <input type="password" id="anthropicKeyInput" placeholder="sk-ant-..." />
@@ -148,7 +147,7 @@
             </div>
 
             <div class="api-key-section" id="geminiSection">
-                <h4>Gemini API Key</h4>
+                <h4>API Key</h4>
                 <div class="key-input-group">
                     <div class="key-input-wrapper">
                         <input type="password" id="geminiKeyInput" placeholder="AIza..." />
@@ -193,6 +192,8 @@
                     <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
                     <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
                     <div class="system-prompt-actions">
+                        <button class="load-prompt-btn" onclick="loadSimplePrompt()">Load Simple Prompt</button>
+                        <button class="load-prompt-btn" onclick="loadSpelledOutPrompt()">Load Spelled Out Prompt</button>
                         <button class="reset-prompt-btn" onclick="resetSystemPrompt()">Reset to Default</button>
                     </div>
                 </div>
@@ -213,7 +214,10 @@
         const apiKeyModal = document.getElementById('apiKeyModal');
         const modalMessage = document.getElementById('modalMessage');
         const saveButton = document.getElementById('saveButton');
-        const modelSelect = document.getElementById('modelSelect');
+        const modelInput = document.getElementById('modelInput');
+        const modelValidateBtn = document.getElementById('modelValidateBtn');
+        const modelStatusText = document.getElementById('modelStatusText');
+        const modelNameExamples = document.getElementById('modelNameExamples');
         const chatModelIndicator = document.getElementById('chatModelIndicator');
         const openaiProvider = document.getElementById('openaiProvider');
         const anthropicProvider = document.getElementById('anthropicProvider');
@@ -261,7 +265,7 @@
         // Load default system prompt from file
         async function loadDefaultSystemPrompt() {
             try {
-                const response = await fetch('default-system-prompt.txt');
+                const response = await fetch('prompts/simple.txt');
                 if (response.ok) {
                     DEFAULT_GAME_SYSTEM_PROMPT = await response.text();
                     // Update GAME_SYSTEM_PROMPT if no custom prompt is set
@@ -352,10 +356,8 @@
         }
 
         function updateModelIndicator() {
-            const provider = providers[currentProvider];
-            const modelName = provider.models.find(m => m.value === currentModel)?.name || currentModel;
             if (chatModelIndicator) {
-                chatModelIndicator.textContent = modelName;
+                chatModelIndicator.textContent = currentModel;
             }
         }
 
@@ -376,88 +378,92 @@
             openrouterSection.classList.remove('current');
             document.getElementById(provider + 'Section').classList.add('current');
             
-            // Update model dropdown
-            updateModelDropdown();
+            // Update model input
+            updateModelInput();
             updateModelIndicator();
         }
 
-        async function updateModelDropdown() {
+        function updateModelInput() {
             const provider = providers[currentProvider];
-            modelSelect.innerHTML = '';
             
-            // For OpenRouter, load models dynamically if not already loaded
+            // Update the examples span with provider's example models
+            modelNameExamples.textContent = provider.exampleModels || 'No examples available';
+            
+            // Set placeholder based on provider
+            modelInput.placeholder = 'Enter model name';
+            
+            // Clear the model field when switching providers
+            currentModel = '';
+            modelInput.value = '';
+            
+            // Show/hide validate button based on provider (exclude OpenRouter)
             if (currentProvider === 'openrouter') {
-                if (!provider.modelsLoaded || provider.models.length === 0) {
-                    // Check if we have an API key first
-                    if (!provider.getApiKey()) {
-                        const noKeyOption = document.createElement('option');
-                        noKeyOption.textContent = 'API key required to load models';
-                        noKeyOption.disabled = true;
-                        modelSelect.appendChild(noKeyOption);
-                        return;
-                    }
-                    
-                    try {
-                        // Show loading indicator in dropdown
-                        const loadingOption = document.createElement('option');
-                        loadingOption.textContent = 'Loading models...';
-                        loadingOption.disabled = true;
-                        modelSelect.appendChild(loadingOption);
-                        
-                        // Load models from OpenRouter API
-                        await provider.loadModels();
-                        
-                        // Clear loading option
-                        modelSelect.innerHTML = '';
-                    } catch (error) {
-                        console.warn('Failed to load OpenRouter models:', error);
-                        // Show error message
-                        modelSelect.innerHTML = '';
-                        const errorOption = document.createElement('option');
-                        errorOption.textContent = 'Failed to load models - check API key';
-                        errorOption.disabled = true;
-                        modelSelect.appendChild(errorOption);
-                        return;
-                    }
-                }
-            }
-            
-            // Add all available models to dropdown
-            provider.models.forEach(model => {
-                const option = document.createElement('option');
-                option.value = model.value;
-                option.textContent = model.name;
-                modelSelect.appendChild(option);
-            });
-            
-            // Set model based on current selection or default
-            const savedModel = localStorage.getItem('ai-model');
-            if (savedModel && provider.models.some(m => m.value === savedModel)) {
-                currentModel = savedModel;
+                modelValidateBtn.style.display = 'none';
             } else {
-                // Set default model for provider
-                currentModel = provider.defaultModel;
+                modelValidateBtn.style.display = 'inline-block';
             }
-            modelSelect.value = currentModel;
+            
+            // Clear any previous validation status
+            modelStatusText.style.display = 'none';
         }
 
         function updateSelectedModel() {
-            const newModel = modelSelect.value;
+            const newModel = modelInput.value.trim();
             if (newModel !== currentModel) {
                 currentModel = newModel;
                 // Update the model indicator
                 updateModelIndicator();
                 // Save the new model selection
                 localStorage.setItem('ai-model', currentModel);
-                // Reload the page to ensure clean state with new model
-                location.reload();
+                // Clear any previous validation status when model changes
+                modelStatusText.style.display = 'none';
             }
+        }
+        
+        async function validateModel() {
+            if (currentProvider === 'openrouter') {
+                return; // Skip validation for OpenRouter
+            }
+            
+            const modelName = modelInput.value.trim();
+            if (!modelName) {
+                showModelStatus('Please enter a model name', 'invalid');
+                return;
+            }
+            
+            const provider = providers[currentProvider];
+            if (!provider.getApiKey()) {
+                showModelStatus('API key required for model validation', 'invalid');
+                return;
+            }
+            
+            modelValidateBtn.disabled = true;
+            modelValidateBtn.textContent = 'Testing...';
+            showModelStatus('Testing model availability...', 'testing');
+            
+            try {
+                // Test the model by making a minimal API call
+                await provider.validateApiKey(provider.getApiKey(), modelName);
+                showModelStatus('Model is available and working', 'valid');
+            } catch (error) {
+                console.error('Model validation failed:', error);
+                showModelStatus(`Model validation failed: ${error.message}`, 'invalid');
+            } finally {
+                modelValidateBtn.disabled = false;
+                modelValidateBtn.textContent = 'Test Model';
+            }
+        }
+        
+        function showModelStatus(message, status) {
+            modelStatusText.textContent = message;
+            modelStatusText.className = `key-status-text ${status}`;
+            modelStatusText.style.display = 'block';
         }
 
         function showSettings() {
             // Set up the modal with current configuration
             selectProvider(currentProvider);
-            modelSelect.value = currentModel;
+            modelInput.value = currentModel;
             
             // Populate existing API keys
             if (apiKeys.openai) {
@@ -660,7 +666,13 @@
                 updateModelIndicator();
                 updateKeyStatusIndicators();
 
-                showModalMessage('Configuration saved successfully!', false);
+                // Clear chat messages and reset conversation history
+                chatMessages.innerHTML = '';
+                Object.values(providers).forEach(provider => {
+                    provider.clearHistory();
+                });
+
+                // showModalMessage('Configuration saved successfully!', false);
 
                 // Close modal after delay
                 setTimeout(() => {
@@ -737,6 +749,21 @@
             }
         };
 
+        const END_GAME_FUNCTION = {
+            name: 'endGame',
+            description: 'When you or the the user guesses correctly, the game should end.',
+            parameters: {
+                type: 'object',
+                properties: {
+                    winner: {
+                        type: 'string',
+                        description: 'either you (llm) or the user',
+                        enum: ['llm', 'user']
+                    }},
+                required: ['winner']
+            }
+        };
+
         async function callAI(message) {
             console.log('callAI called with:', { message, currentProvider, hasApiKey: !!apiKeys[currentProvider] });
             
@@ -758,7 +785,7 @@
                 console.log('Calling API for provider:', currentProvider);
                                 
                 const multimodalMessage = await provider.createMultimodalMessage(message);
-                const response = await provider.callAPI(multimodalMessage, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
+                const response = await provider.callAPI(multimodalMessage, currentModel, [ELIMINATE_CHARACTER_FUNCTION, END_GAME_FUNCTION]);
 
                 console.log('API response received, status:', response.status);
 
@@ -797,6 +824,12 @@
                             } catch (e) {
                                 console.error('Error executing tool call:', e);
                             }
+                        } else if (toolCall.function.name === 'endGame') {
+                            const args = JSON.parse(toolCall.function.arguments);
+                            console.log("parsing arguments", args);
+                            // Create confetti effect and congratulations popup
+                            createConfetti();
+                            showCongratulationsPopup(args.winner);
                         }
                     }
                 }
@@ -867,6 +900,40 @@
             }
         }
 
+        // Load simple prompt
+        async function loadSimplePrompt() {
+            try {
+                const response = await fetch('prompts/simple.txt');
+                if (response.ok) {
+                    const promptText = await response.text();
+                    systemPromptTextarea.value = promptText;
+                    console.log('Simple prompt loaded');
+                } else {
+                    throw new Error(`Failed to load simple prompt: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading simple prompt:', error);
+                alert('Failed to load simple prompt. Please check if the file exists.');
+            }
+        }
+
+        // Load spelled-out prompt
+        async function loadSpelledOutPrompt() {
+            try {
+                const response = await fetch('prompts/spelled-out.txt');
+                if (response.ok) {
+                    const promptText = await response.text();
+                    systemPromptTextarea.value = promptText;
+                    console.log('Spelled out prompt loaded');
+                } else {
+                    throw new Error(`Failed to load spelled out prompt: ${response.status}`);
+                }
+            } catch (error) {
+                console.error('Error loading spelled out prompt:', error);
+                alert('Failed to load spelled out prompt. Please check if the file exists.');
+            }
+        }
+
         // Game functions
         function shuffleArray(array) {
             const shuffled = [...array];
@@ -897,7 +964,7 @@
 
         function createLLMCharacterCard(name) {
             const card = document.createElement('div');
-            card.className = 'llm-character-card';
+            card.className = 'character-card';
             card.dataset.character = name;
 
             const img = document.createElement('img');
@@ -1030,10 +1097,10 @@
                     
                     // Stream the response - message element will be created when typing indicator is removed
                     const result = await provider.streamResponse(response, null, typingIndicator);
-                    console.log('Initial greeting generated successfully (canary passed)');
+                    console.log('Initial greeting generated successfully');
                     
                 } catch (error) {
-                    console.error('Canary test failed - could not generate initial greeting:', error);
+                    console.error('Could not generate initial greeting:', error);
                     
                     // Remove typing indicator if still present
                     if (typingIndicator && typingIndicator.parentNode) {
@@ -1180,7 +1247,7 @@
 
         // Update LLM character visibility function
         function updateLLMCharacterVisibility() {
-            const llmSelectedCard = document.querySelector('#llmSelectedContainer .llm-character-card');
+            const llmSelectedCard = document.querySelector('#llmSelectedContainer .character-card');
             if (llmSelectedCard) {
                 if (showLLMCharacter) {
                     llmSelectedCard.classList.remove('hidden-character');
@@ -1188,6 +1255,184 @@
                     llmSelectedCard.classList.add('hidden-character');
                 }
             }
+        }
+
+        // Confetti effect function
+        function createConfetti() {
+            const colors = ['#ff6b6b', '#4ecdc4', '#45b7d1', '#96ceb4', '#ffd93d', '#ffbe0b'];
+            const confettiContainer = document.createElement('div');
+            confettiContainer.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                pointer-events: none;
+                z-index: 10000;
+            `;
+            document.body.appendChild(confettiContainer);
+
+            // Create confetti pieces
+            for (let i = 0; i < 100; i++) {
+                const confetti = document.createElement('div');
+                const color = colors[Math.floor(Math.random() * colors.length)];
+                const size = Math.random() * 10 + 5;
+                const left = Math.random() * 100;
+                const animationDuration = Math.random() * 3 + 2;
+                const opacity = Math.random() * 0.7 + 0.3;
+
+                confetti.style.cssText = `
+                    position: absolute;
+                    background-color: ${color};
+                    width: ${size}px;
+                    height: ${size}px;
+                    left: ${left}%;
+                    top: -10px;
+                    opacity: ${opacity};
+                    border-radius: ${Math.random() > 0.5 ? '50%' : '0'};
+                    animation: confettiFall ${animationDuration}s linear forwards;
+                `;
+
+                confettiContainer.appendChild(confetti);
+            }
+
+            // Add confetti animation CSS
+            if (!document.querySelector('#confetti-styles')) {
+                const style = document.createElement('style');
+                style.id = 'confetti-styles';
+                style.textContent = `
+                    @keyframes confettiFall {
+                        0% {
+                            transform: translateY(-10px) rotate(0deg);
+                        }
+                        100% {
+                            transform: translateY(100vh) rotate(360deg);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            // Remove confetti after animation
+            setTimeout(() => {
+                confettiContainer.remove();
+            }, 5000);
+        }
+
+        // Congratulations popup function
+        function showCongratulationsPopup(winner) {
+            // Create popup overlay
+            const overlay = document.createElement('div');
+            overlay.style.cssText = `
+                position: fixed;
+                top: 0;
+                left: 0;
+                width: 100%;
+                height: 100%;
+                background-color: rgba(0, 0, 0, 0.8);
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                z-index: 10001;
+                animation: fadeIn 0.3s ease-out;
+            `;
+
+            // Create popup content
+            const popup = document.createElement('div');
+            popup.style.cssText = `
+                background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+                color: white;
+                padding: 40px;
+                border-radius: 20px;
+                text-align: center;
+                box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
+                max-width: 400px;
+                animation: popIn 0.4s ease-out;
+            `;
+
+            if (winner === 'user') {
+                popup.innerHTML = `
+                    <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
+                    <h2 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">Congratulations!</h2>
+                    <p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.4;">You won the game! 🏆</p>
+                    <button id="closePopup" style="
+                        background-color: #fff;
+                        color: #667eea;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: transform 0.2s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        Play Again!
+                    </button>
+                `;
+            } else {
+                popup.innerHTML = `
+                    <div style="font-size: 60px; margin-bottom: 20px;">☠️</div>
+                    <h2 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">Try again!</h2>
+                    <p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.4;">You lost this time 😭</p>
+                    <button id="closePopup" style="
+                        background-color: #fff;
+                        color: #667eea;
+                        border: none;
+                        padding: 12px 30px;
+                        border-radius: 25px;
+                        font-size: 16px;
+                        font-weight: bold;
+                        cursor: pointer;
+                        transition: transform 0.2s ease;
+                    " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
+                        Play Again!
+                    </button>
+                `;
+            }
+            
+
+            // Add popup animations CSS
+            if (!document.querySelector('#popup-styles')) {
+                const style = document.createElement('style');
+                style.id = 'popup-styles';
+                style.textContent = `
+                    @keyframes fadeIn {
+                        from { opacity: 0; }
+                        to { opacity: 1; }
+                    }
+                    @keyframes popIn {
+                        0% {
+                            opacity: 0;
+                            transform: scale(0.8) translateY(-10px);
+                        }
+                        100% {
+                            opacity: 1;
+                            transform: scale(1) translateY(0);
+                        }
+                    }
+                `;
+                document.head.appendChild(style);
+            }
+
+            overlay.appendChild(popup);
+            document.body.appendChild(overlay);
+
+            // Close popup handler
+            document.getElementById('closePopup').onclick = () => {
+                overlay.style.animation = 'fadeIn 0.3s ease-out reverse';
+                setTimeout(() => {
+                    overlay.remove();
+                    // Reset the game
+                    location.reload();
+                }, 300);
+            };
+
+            // Close on overlay click
+            overlay.onclick = (e) => {
+                if (e.target === overlay) {
+                    document.getElementById('closePopup').click();
+                }
+            };
         }
 
         // Start the app
