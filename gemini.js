@@ -10,12 +10,16 @@ class GeminiProvider {
         this.systemPrompt = '';
     }
 
-    async validateApiKey(key) {
-        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models?key=${key}`, {
-            method: 'GET',
+    async validateApiKey(key, model) {
+        const response = await fetch(`https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${key}`, {
+            method: 'POST',
             headers: {
                 'Content-Type': 'application/json'
-            }
+            },
+            body: JSON.stringify({"contents": {
+                role: 'user',
+                parts: [{ text: 'test' }]
+            }})
         });
 
         if (response.status === 400) {

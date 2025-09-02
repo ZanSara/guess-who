@@ -4,8 +4,9 @@ class OpenAIProvider {
         this.name = 'openai';
         this.displayName = 'OpenAI';
         this.keyPrefix = 'sk-';
-        this.exampleModels = "gpt-5, gpt-5-mini, gpt-5-nano, gpt-4o"
+        this.exampleModels = "gpt-5, gpt-5-mini, gpt-5-nano, gpt-4o";
         this.defaultModel = 'gpt-4o';
+        this.defaultEndpoint = 'https://api.openai.com/v1';  // https://openrouter.ai/api/v1/models
         this.conversationHistory = [];
     }
 
@@ -16,7 +17,7 @@ class OpenAIProvider {
             stream: false
         };
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(`${this.getEndpoint()}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${key}`,
@@ -75,7 +76,7 @@ class OpenAIProvider {
             }));
         }
 
-        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+        const response = await fetch(`${this.getEndpoint()}/chat/completions`, {
             method: 'POST',
             headers: {
                 'Authorization': `Bearer ${this.getApiKey()}`,
@@ -90,7 +91,15 @@ class OpenAIProvider {
             } else if (response.status === 429) {
                 throw new Error('Rate limit exceeded. Please try again later.');
             } else {
-                throw new Error(`API request failed: ${response.status}`);
+                let errorMessage = ''
+                try {
+                    const errorData = await response.json();
+                    errorMessage = `${JSON.stringify(errorData)}`;
+                } catch (jsonError) {
+                    // If JSON parsing fails, just use the status code
+                    errorMessage = '(no JSON error details)';
+                }
+                throw new Error(errorMessage);
             }
         }
 
@@ -148,6 +157,14 @@ class OpenAIProvider {
 
     getCurrentModel() {
         return localStorage.getItem('ai-model') || this.defaultModel;
+    }
+
+    getEndpoint() {
+        return localStorage.getItem('openai-endpoint') || this.defaultEndpoint;
+    }
+
+    setEndpoint(endpoint) {
+        localStorage.setItem('openai-endpoint', endpoint);
     }
 
     createImageContent(base64Image) {

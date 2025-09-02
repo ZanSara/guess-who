@@ -9,7 +9,6 @@
     <script src="openai.js"></script>
     <script src="anthropic.js"></script>
     <script src="gemini.js"></script>
-    <script src="openrouter.js"></script>
 </head>
 <body>
     <header>
@@ -67,7 +66,7 @@
             <div class="tab-panel active" id="chat">
                 <div class="chat-container">
                     <div class="model-indicator-bar">
-                        <span>Playing against: </span>
+                        <span style="text-align: center;">Playing against:</span>
                         <span class="current-model" id="chatModelIndicator">...</span>
                         <button class="settings-button" onclick="showSettings()">Settings</button>
                     </div>
@@ -105,71 +104,47 @@
                 </div>
                 <div class="provider-option" id="geminiProvider" onclick="selectProvider('gemini')">
                     <div class="key-status" id="geminiKeyStatus"></div>
-                    <strong>Google Gemini</strong><br>
-                </div>
-                <div class="provider-option" id="openrouterProvider" onclick="selectProvider('openrouter')">
-                    <div class="key-status" id="openrouterKeyStatus"></div>
-                    <strong>OpenRouter</strong><br>
+                    <strong>Gemini</strong><br>
                 </div>
             </div>
             
             <div class="model-selection">
                 <label for="modelInput">Model Name (examples: <span id="modelNameExamples"></span>):</label>
-                <div class="key-input-group">
-                    <input type="text" id="modelInput" placeholder="..." oninput="updateSelectedModel()">
-                    <button type="button" class="validate-btn" id="modelValidateBtn" onclick="validateModel()">Test Model</button>
-                </div>
+                <input type="text" id="modelInput" placeholder="..." oninput="updateSelectedModel()">
                 <div class="key-status-text" id="modelStatusText" style="display: none;"></div>
             </div>
 
             <div class="api-key-section current" id="openaiSection">
-                <h4>API Key</h4>
+                <label for="openaiEndpointInput">API Endpoint:</label>
                 <div class="key-input-group">
-                    <div class="key-input-wrapper">
-                        <input type="password" id="openaiKeyInput" placeholder="sk-..." />
-                        <span class="toggle-password">👁️</span>
-                    </div>
-                    <button class="validate-btn" onclick="validateProviderKey('openai')" id="openaiValidateBtn">Test Key</button>
+                    <input type="text" id="openaiEndpointInput" placeholder="https://api.openai.com/v1" oninput="saveEndpointToStorage()" />
+                </div>
+                <label style="margin-top:0.5rem;" for="openaiKeyInput">API Key:</label>
+                <div class="key-input-wrapper">
+                    <input type="password" id="openaiKeyInput" placeholder="sk-..." oninput="saveApiKeyToStorage('openai')" />
+                    <span class="toggle-password">👁️</span>
                 </div>
                 <div class="key-status-text" id="openaiKeyStatusText" style="display: none;"></div>
             </div>
 
             <div class="api-key-section" id="anthropicSection">
-                <h4>API Key</h4>
-                <div class="key-input-group">
-                    <div class="key-input-wrapper">
-                        <input type="password" id="anthropicKeyInput" placeholder="sk-ant-..." />
-                        <span class="toggle-password">👁️</span>
-                    </div>
-                    <button class="validate-btn" onclick="validateProviderKey('anthropic')" id="anthropicValidateBtn">Test Key</button>
+                <label for="anthropicKeyInput">API Key:</label>
+                <div class="key-input-wrapper">
+                    <input type="password" id="anthropicKeyInput" placeholder="sk-ant-..." oninput="saveApiKeyToStorage('anthropic')" />
+                    <span class="toggle-password">👁️</span>
                 </div>
                 <div class="key-status-text" id="anthropicKeyStatusText" style="display: none;"></div>
             </div>
 
             <div class="api-key-section" id="geminiSection">
-                <h4>API Key</h4>
-                <div class="key-input-group">
-                    <div class="key-input-wrapper">
-                        <input type="password" id="geminiKeyInput" placeholder="AIza..." />
-                        <span class="toggle-password">👁️</span>
-                    </div>
-                    <button class="validate-btn" onclick="validateProviderKey('gemini')" id="geminiValidateBtn">Test Key</button>
+                <label for="geminiKeyInput">API Key:</label>
+                <div class="key-input-wrapper">
+                    <input type="password" id="geminiKeyInput" placeholder="AIza..." oninput="saveApiKeyToStorage('gemini')" />
+                    <span class="toggle-password">👁️</span>
                 </div>
                 <div class="key-status-text" id="geminiKeyStatusText" style="display: none;"></div>
             </div>
 
-            <div class="api-key-section" id="openrouterSection">
-                <h4>OpenRouter API Key</h4>
-                <div class="key-input-group">
-                    <div class="key-input-wrapper">
-                        <input type="password" id="openrouterKeyInput" placeholder="sk-or-..." />
-                        <span class="toggle-password">👁️</span>
-                    </div>
-                    <button class="validate-btn" onclick="validateProviderKey('openrouter')" id="openrouterValidateBtn">Test Key</button>
-                </div>
-                <div class="key-status-text" id="openrouterKeyStatusText" style="display: none;"></div>
-            </div>
-            
             <details>
                 <summary>Advanced</summary>
                 
@@ -199,8 +174,9 @@
                 </div>
             </details>
 
-            <div>
-                <button onclick="saveConfiguration()" id="saveButton">Save Configuration</button>
+            <div style="display: flex; gap: 0.5rem; margin-top: 1.5rem;">
+                <button onclick="testConfiguration()" style="background: linear-gradient(135deg, #88ff00 0%, #1df500 100%); color: white;">Test</button>
+                <button onclick="saveConfiguration()" id="saveButton">Save</button>
                 <button onclick="closeModal()">Cancel</button>
             </div>
             
@@ -215,36 +191,27 @@
         const modalMessage = document.getElementById('modalMessage');
         const saveButton = document.getElementById('saveButton');
         const modelInput = document.getElementById('modelInput');
-        const modelValidateBtn = document.getElementById('modelValidateBtn');
         const modelStatusText = document.getElementById('modelStatusText');
         const modelNameExamples = document.getElementById('modelNameExamples');
         const chatModelIndicator = document.getElementById('chatModelIndicator');
         const openaiProvider = document.getElementById('openaiProvider');
         const anthropicProvider = document.getElementById('anthropicProvider');
         const geminiProvider = document.getElementById('geminiProvider');
-        const openrouterProvider = document.getElementById('openrouterProvider');
         
         // New elements for multi-key support
         const openaiKeyInput = document.getElementById('openaiKeyInput');
+        const openaiEndpointInput = document.getElementById('openaiEndpointInput');
         const anthropicKeyInput = document.getElementById('anthropicKeyInput');
         const geminiKeyInput = document.getElementById('geminiKeyInput');
-        const openrouterKeyInput = document.getElementById('openrouterKeyInput');
         const openaiKeyStatus = document.getElementById('openaiKeyStatus');
         const anthropicKeyStatus = document.getElementById('anthropicKeyStatus');
         const geminiKeyStatus = document.getElementById('geminiKeyStatus');
-        const openrouterKeyStatus = document.getElementById('openrouterKeyStatus');
         const openaiSection = document.getElementById('openaiSection');
         const anthropicSection = document.getElementById('anthropicSection');
         const geminiSection = document.getElementById('geminiSection');
-        const openrouterSection = document.getElementById('openrouterSection');
         const openaiKeyStatusText = document.getElementById('openaiKeyStatusText');
         const anthropicKeyStatusText = document.getElementById('anthropicKeyStatusText');
         const geminiKeyStatusText = document.getElementById('geminiKeyStatusText');
-        const openrouterKeyStatusText = document.getElementById('openrouterKeyStatusText');
-        const openaiValidateBtn = document.getElementById('openaiValidateBtn');
-        const anthropicValidateBtn = document.getElementById('anthropicValidateBtn');
-        const geminiValidateBtn = document.getElementById('geminiValidateBtn');
-        const openrouterValidateBtn = document.getElementById('openrouterValidateBtn');
         
         // Game board elements
         const loadingBoard = document.getElementById('loadingBoard');
@@ -291,13 +258,12 @@
         }
 
         // Configuration storage
-        let currentProvider = localStorage.getItem('ai-provider') || 'openai';
-        let currentModel = localStorage.getItem('ai-model') || 'gpt-4o';
+        let currentProvider = localStorage.getItem('ai-provider') || '';
+        let currentModel = localStorage.getItem('ai-model') || '';
         let apiKeys = {
             openai: localStorage.getItem('openai-api-key'),
             anthropic: localStorage.getItem('anthropic-api-key'),
             gemini: localStorage.getItem('gemini-api-key'),
-            openrouter: localStorage.getItem('openrouter-api-key')
         };
         let isProcessing = false;
 
@@ -322,7 +288,6 @@
             openai: new OpenAIProvider(),
             anthropic: new AnthropicProvider(),
             gemini: new GeminiProvider(),
-            openrouter: new OpenRouterProvider()
         };
 
         function updateKeyStatusIndicators() {
@@ -346,13 +311,6 @@
             } else {
                 geminiKeyStatus.classList.remove('has-key');
             }
-
-            // Update OpenRouter key status indicator
-            if (apiKeys.openrouter) {
-                openrouterKeyStatus.classList.add('has-key');
-            } else {
-                openrouterKeyStatus.classList.remove('has-key');
-            }
         }
 
         function updateModelIndicator() {
@@ -368,14 +326,12 @@
             openaiProvider.classList.remove('active');
             anthropicProvider.classList.remove('active');
             geminiProvider.classList.remove('active');
-            openrouterProvider.classList.remove('active');
             document.getElementById(provider + 'Provider').classList.add('active');
             
             // Update section highlighting
             openaiSection.classList.remove('current');
             anthropicSection.classList.remove('current');
             geminiSection.classList.remove('current');
-            openrouterSection.classList.remove('current');
             document.getElementById(provider + 'Section').classList.add('current');
             
             // Update model input
@@ -389,19 +345,9 @@
             // Update the examples span with provider's example models
             modelNameExamples.textContent = provider.exampleModels || 'No examples available';
             
-            // Set placeholder based on provider
-            modelInput.placeholder = 'Enter model name';
-            
             // Clear the model field when switching providers
-            currentModel = '';
-            modelInput.value = '';
-            
-            // Show/hide validate button based on provider (exclude OpenRouter)
-            if (currentProvider === 'openrouter') {
-                modelValidateBtn.style.display = 'none';
-            } else {
-                modelValidateBtn.style.display = 'inline-block';
-            }
+            currentModel = localStorage.getItem(`${currentProvider}-ai-model`) || '';
+            modelInput.value = currentModel;
             
             // Clear any previous validation status
             modelStatusText.style.display = 'none';
@@ -409,48 +355,72 @@
 
         function updateSelectedModel() {
             const newModel = modelInput.value.trim();
-            if (newModel !== currentModel) {
-                currentModel = newModel;
-                // Update the model indicator
-                updateModelIndicator();
-                // Save the new model selection
-                localStorage.setItem('ai-model', currentModel);
-                // Clear any previous validation status when model changes
-                modelStatusText.style.display = 'none';
-            }
+            currentModel = newModel;
+            // Update the model indicator
+            updateModelIndicator();
+            // Save the new model selection
+            localStorage.setItem('ai-model', currentModel);
+            localStorage.setItem(`${currentProvider}-ai-model`, currentModel);
+            // Clear any previous validation status when model changes
+            modelStatusText.style.display = 'none';
         }
         
-        async function validateModel() {
-            if (currentProvider === 'openrouter') {
-                return; // Skip validation for OpenRouter
-            }
+        async function testConfiguration() {
+            // Clear previous messages
+            modalMessage.innerHTML = '';
+            clearAllKeyStatusTexts();
             
+            // Get current configuration
             const modelName = modelInput.value.trim();
-            if (!modelName) {
-                showModelStatus('Please enter a model name', 'invalid');
-                return;
-            }
-            
             const provider = providers[currentProvider];
-            if (!provider.getApiKey()) {
-                showModelStatus('API key required for model validation', 'invalid');
+            
+            // Validate required fields based on provider
+            let missingFields = [];
+            
+            // Check model name
+            if (!modelName) {
+                missingFields.push('Model Name');
+            }
+            
+            // Check API key
+            let apiKey = '';
+            if (currentProvider === 'openai') {
+                apiKey = openaiKeyInput.value.trim();
+                if (!apiKey) {
+                    missingFields.push('API Key');
+                }
+                const endpoint = openaiEndpointInput.value.trim();
+                if (!endpoint) {
+                    missingFields.push('API Endpoint');
+                }
+            } else if (currentProvider === 'anthropic') {
+                apiKey = anthropicKeyInput.value.trim();
+                if (!apiKey) {
+                    missingFields.push('API Key');
+                }
+            } else if (currentProvider === 'gemini') {
+                apiKey = geminiKeyInput.value.trim();
+                if (!apiKey) {
+                    missingFields.push('API Key');
+                }
+            }
+            
+            // Show error if any fields are missing
+            if (missingFields.length > 0) {
+                showModalMessage(`Missing required fields: ${missingFields.join(', ')}`, true);
                 return;
             }
             
-            modelValidateBtn.disabled = true;
-            modelValidateBtn.textContent = 'Testing...';
-            showModelStatus('Testing model availability...', 'testing');
+            // Show testing status
+            showModalMessage('Testing configuration...', false);
             
             try {
-                // Test the model by making a minimal API call
-                await provider.validateApiKey(provider.getApiKey(), modelName);
-                showModelStatus('Model is available and working', 'valid');
+                // Test the complete configuration
+                await provider.validateApiKey(apiKey, modelName);
+                showModalMessage('✅ Configuration is valid and working!', false);
             } catch (error) {
-                console.error('Model validation failed:', error);
-                showModelStatus(`Model validation failed: ${error.message}`, 'invalid');
-            } finally {
-                modelValidateBtn.disabled = false;
-                modelValidateBtn.textContent = 'Test Model';
+                console.error('Configuration test failed:', error);
+                showModalMessage(`❌ Configuration test failed: ${error.message}`, true);
             }
         }
         
@@ -459,15 +429,58 @@
             modelStatusText.className = `key-status-text ${status}`;
             modelStatusText.style.display = 'block';
         }
-
+        
+        function saveEndpointToStorage() {
+            const endpoint = openaiEndpointInput.value.trim();
+            if (endpoint) {
+                localStorage.setItem('openai-endpoint', endpoint);
+            } else {
+                localStorage.removeItem('openai-endpoint');
+            }
+        }
+        
+        function saveApiKeyToStorage(provider) {
+            let keyInput, storageKey;
+            
+            if (provider === 'openai') {
+                keyInput = openaiKeyInput;
+                storageKey = 'openai-api-key';
+            } else if (provider === 'anthropic') {
+                keyInput = anthropicKeyInput;
+                storageKey = 'anthropic-api-key';
+            } else if (provider === 'gemini') {
+                keyInput = geminiKeyInput;
+                storageKey = 'gemini-api-key';
+            }
+            
+            const key = keyInput.value.trim();
+            if (key) {
+                localStorage.setItem(storageKey, key);
+                apiKeys[provider] = key;
+            } else {
+                localStorage.removeItem(storageKey);
+                apiKeys[provider] = null;
+            }
+            
+            // Update key status indicators
+            updateKeyStatusIndicators();
+        }
+        
         function showSettings() {
             // Set up the modal with current configuration
-            selectProvider(currentProvider);
-            modelInput.value = currentModel;
+            selectProvider(currentProvider || 'openai');
+            modelInput.value = localStorage.getItem(`${currentProvider}-ai-model`) || '';;
             
-            // Populate existing API keys
+            // Populate existing API keys and endpoint
             if (apiKeys.openai) {
                 openaiKeyInput.value = apiKeys.openai;
+            }
+            // Populate OpenAI endpoint
+            const savedEndpoint = localStorage.getItem('openai-endpoint');
+            if (savedEndpoint) {
+                openaiEndpointInput.value = savedEndpoint;
+            } else {
+                openaiEndpointInput.value = providers.openai.defaultEndpoint;
             }
             if (apiKeys.anthropic) {
                 anthropicKeyInput.value = apiKeys.anthropic;
@@ -475,10 +488,6 @@
             if (apiKeys.gemini) {
                 geminiKeyInput.value = apiKeys.gemini;
             }
-            if (apiKeys.openrouter) {
-                openrouterKeyInput.value = apiKeys.openrouter;
-            }
-            
             // Populate system prompt textarea
             systemPromptTextarea.value = GAME_SYSTEM_PROMPT;
             
@@ -509,7 +518,6 @@
             openaiKeyStatusText.style.display = 'none';
             anthropicKeyStatusText.style.display = 'none';
             geminiKeyStatusText.style.display = 'none';
-            openrouterKeyStatusText.style.display = 'none';
         }
 
         function showKeyStatus(provider, message, status) {
@@ -520,76 +528,16 @@
                 statusElement = anthropicKeyStatusText;
             } else if (provider === 'gemini') {
                 statusElement = geminiKeyStatusText;
-            } else if (provider === 'openrouter') {
-                statusElement = openrouterKeyStatusText;
             }
             statusElement.textContent = message;
             statusElement.className = `key-status-text ${status}`;
             statusElement.style.display = 'block';
         }
 
-        async function validateProviderKey(provider) {
-            let keyInput, validateBtn;
-            if (provider === 'openai') {
-                keyInput = openaiKeyInput;
-                validateBtn = openaiValidateBtn;
-            } else if (provider === 'anthropic') {
-                keyInput = anthropicKeyInput;
-                validateBtn = anthropicValidateBtn;
-            } else if (provider === 'gemini') {
-                keyInput = geminiKeyInput;
-                validateBtn = geminiValidateBtn;
-            } else if (provider === 'openrouter') {
-                keyInput = openrouterKeyInput;
-                validateBtn = openrouterValidateBtn;
-            }
-            const key = keyInput.value.trim();
-            const providerInstance = providers[provider];
-
-            if (!key) {
-                showKeyStatus(provider, 'Please enter an API key', 'invalid');
-                return false;
-            }
-
-            if (provider !== 'gemini' && !key.startsWith(providerInstance.keyPrefix)) {
-                showKeyStatus(provider, `API key should start with "${providerInstance.keyPrefix}"`, 'invalid');
-                return false;
-            }
-
-            validateBtn.disabled = true;
-            validateBtn.textContent = 'Testing...';
-            showKeyStatus(provider, 'Testing API key...', 'testing');
-
-            try {
-                // For OpenRouter, no model is needed for validation
-                // For other providers, get a default model for testing
-                const testModel = provider === 'openrouter' ? null : providerInstance.models[0]?.value;
-                
-                await providerInstance.validateApiKey(key, testModel);
-
-                showKeyStatus(provider, '✓ API key is valid!', 'valid');
-                
-                // If this is OpenRouter and validation succeeded, update the model dropdown
-                if (provider === 'openrouter' && currentProvider === 'openrouter') {
-                    await updateModelDropdown();
-                }
-                
-                return true;
-
-            } catch (error) {
-                showKeyStatus(provider, error.message, 'invalid');
-                return false;
-            } finally {
-                validateBtn.disabled = false;
-                validateBtn.textContent = 'Test Key';
-            }
-        }
-
         async function saveConfiguration() {
             const openaiKey = openaiKeyInput.value.trim();
             const anthropicKey = anthropicKeyInput.value.trim();
             const geminiKey = geminiKeyInput.value.trim();
-            const openrouterKey = openrouterKeyInput.value.trim();
             
             // Validate that the selected provider has a key
             let selectedProviderKey;
@@ -599,8 +547,6 @@
                 selectedProviderKey = anthropicKey;
             } else if (currentProvider === 'gemini') {
                 selectedProviderKey = geminiKey;
-            } else if (currentProvider === 'openrouter') {
-                selectedProviderKey = openrouterKey;
             }
 
             if (!selectedProviderKey) {
@@ -609,7 +555,6 @@
             }
 
             saveButton.disabled = true;
-            saveButton.textContent = 'Saving...';
 
             try {
                 // Save OpenAI key if provided
@@ -619,6 +564,15 @@
                 } else if (apiKeys.openai) {
                     // Keep existing key if no new one provided
                     openaiKeyInput.value = apiKeys.openai;
+                }
+                
+                // Save OpenAI endpoint
+                if (openaiEndpointInput) {
+                    providers.openai.setEndpoint(openaiEndpointInput.value);
+                } else {
+                    // Use default endpoint if empty
+                    providers.openai.setEndpoint(providers.openai.defaultEndpoint);
+                    openaiEndpointInput.value = providers.openai.defaultEndpoint;
                 }
 
                 // Save Anthropic key if provided
@@ -639,15 +593,6 @@
                     geminiKeyInput.value = apiKeys.gemini;
                 }
 
-                // Save OpenRouter key if provided
-                if (openrouterKey) {
-                    apiKeys.openrouter = openrouterKey;
-                    localStorage.setItem('openrouter-api-key', openrouterKey);
-                } else if (apiKeys.openrouter) {
-                    // Keep existing key if no new one provided
-                    openrouterKeyInput.value = apiKeys.openrouter;
-                }
-
                 // Save system prompt
                 const newPrompt = systemPromptTextarea.value.trim();
                 if (newPrompt) {
@@ -659,31 +604,27 @@
                 }
 
                 // Save current provider and model
+                const changedProvider = localStorage.getItem('ai-provider') !== currentProvider;
                 localStorage.setItem('ai-provider', currentProvider);
-                localStorage.setItem('ai-model', currentModel);
 
                 // Update UI
                 updateModelIndicator();
                 updateKeyStatusIndicators();
-
-                // Clear chat messages and reset conversation history
-                chatMessages.innerHTML = '';
-                Object.values(providers).forEach(provider => {
-                    provider.clearHistory();
-                });
-
-                // showModalMessage('Configuration saved successfully!', false);
 
                 // Close modal after delay
                 setTimeout(() => {
                     closeModal();
                 }, 500);
 
+                // Reload the page if the provider was changed
+                if (changedProvider) {
+                    location.reload();
+                }
+
             } catch (error) {
                 showModalMessage(error.message, true);
             } finally {
                 saveButton.disabled = false;
-                saveButton.textContent = 'Save Configuration';
             }
         }
 
@@ -721,11 +662,6 @@
             isProcessing = processing;
             if (sendButton) {
                 sendButton.disabled = processing;
-                if (processing) {
-                    sendButton.textContent = 'Sending...';
-                } else {
-                    sendButton.textContent = 'Send';
-                }
             }
             if (chatInput) {
                 chatInput.disabled = processing;
@@ -1088,7 +1024,8 @@
                 provider.addToHistory(provider.createMultimodalMessage('Here is the board:', await getImageAsBase64('full-board.png')));
                 provider.addToHistory(provider.createMultimodalMessage('Here is YOUR character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
                 
-                // Show typing indicator
+                // Show typing indicator and disable send button
+                setProcessingState(true);
                 const typingIndicator = showTypingIndicator();
 
                 try {
@@ -1099,6 +1036,9 @@
                     const result = await provider.streamResponse(response, null, typingIndicator);
                     console.log('Initial greeting generated successfully');
                     
+                    // Re-enable send button after successful response
+                    setProcessingState(false);
+                    
                 } catch (error) {
                     console.error('Could not generate initial greeting:', error);
                     
@@ -1106,6 +1046,9 @@
                     if (typingIndicator && typingIndicator.parentNode) {
                         typingIndicator.remove();
                     }
+                    
+                    // Re-enable send button on error
+                    setProcessingState(false);
                     
                     // Show error message and prompt for API key setup
                     addMessage(`Unable to connect to AI service: ${error.message}`, false);
@@ -1214,6 +1157,9 @@
             loadGameBoard();
             setupPasswordToggle();
 
+            if (!currentProvider) {
+                showSettings();
+            }
             if (!apiKeys[currentProvider]) {
                 showSettings();
             }
