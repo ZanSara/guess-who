@@ -392,6 +392,7 @@ header h1 {
 }
 
 .chat-messages {
+    position: relative;
     flex: 1;
     overflow-y: auto;
     margin-bottom: 1rem;
@@ -1491,7 +1492,7 @@ footer a:hover {
 /* Expand/Collapse Button */
 #expandCollapseBtn {
     position: absolute;
-    top: 0.5rem;
+    top: 5rem;
     right: 0.5rem;
     background: rgba(0, 0, 0, 0.1);
     color: #333;
