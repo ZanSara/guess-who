@@ -149,7 +149,7 @@
             </div>
 
             <details>
-                <summary>Advanced</summary>
+                <summary class="h2">Advanced</summary>
                 
                 <!-- Game Options Section -->
                 <div class="game-options-section">
@@ -190,11 +190,61 @@
     <div id="helpModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>How to Play</h2>
+                <h2>🕵️ Welcome!</h2>
                 <button class="close-modal" onclick="closeHelpModal()">&times;</button>
             </div>
-            <p>This is some placeholder text for the help modal. You can replace this with instructions on how to play the game.</p>
-            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+            <p>
+                On this page you can try to play "Guess Who" against an LLM of your choice.
+            </p>
+            <h2>The Rules</h2>
+            <p>
+                If you are not familiar with the game, here is a quick recap of the rules:
+            </p>
+            <ul>
+                <li>Each player has a board full of characters.</li>
+                <li>Each players receives a random character.</li>
+                <li>Your goal is to guess which character the other player has received by asking yes/no questions, such as "Is your character male?" or "Does your character have black hair?" and so on</li>
+                <li>The first player to guess the opponent character's name wins.</li>
+            </ul>
+            <h2>Choose the LLM</h2>
+            <p>
+                Before you can play you have to <b>connect an LLM</b>. This game supports OpenAI-compatible endpoints, Anthropic and Gemini. Just click on Settings, select your provider, type in the model name of the LLM you want to play against and add your API key. You can test that your setup works by clicking on the Test button.
+
+                <details>
+                    <summary>What's an API key?</summary>
+                    <p>
+                        An API key is similar to a password: it gives application access to a private resource. For example, have a look here to get your own OpenAI API key: <a href="https://help.openai.com/en/articles/4936850-where-do-i-find-my-openai-api-key">Where do I find my OpenAI API Key? - OpenAI Help Center</a>
+                    </p>
+                </details>
+                <details>
+                    <summary>No way I'm giving you my API keys dude</summary>
+                    <p>
+                        Legit! I wouldn't either. If you still want to play, you can <a href="https://github.com/ZanSara/guess-who">get the source code on GitHub</a> and run the game yourself. It's extremely easy! The entire game is an HTML file with a little JS and CSS on the side. No frameworks, no build systems, no Node.js, React or whatever. This game has no backend at all. It's fully hosted on GitHub Pages and everything is stored in your local storage. Check the <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file">README</a> of the repo for more details, but it all boils down to running <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file#how-to-play">these three commands</a> on any modern Linux or Mac OS.
+                    </p>
+                </details>
+            </p>
+            <img src="/help/settings.png">
+            <h2>Gameplay</h2>
+            <p>
+                You can communicate with the LLM through a free form chat, where everything is allowed (just like in real life!).
+            </p>
+            <img src="/help/chat.png">
+            <p>
+                Your board will be on the left, with your chosen character at the top. You can remove characters from your board by clicking on them. Clicking on an eliminated character brings it back.
+            </p>
+            <img src="/help/user-board.png">
+            <p>
+                You can also see the LLM's board to know how many characters it already filtered out and how close it is to winning.                
+            </p>
+            <img src="/help/llm-board.png">
+            <p>
+                The LLM is in charge of declaring a winner. When you win, the LLM should declare you the winner:                
+            </p>
+            <img src="/help/user-wins.png">
+            <p>
+                When you lose, you'll see this instead:               
+            </p>
+            <img src="/help/llm-wins.png">
         </div>
     </div>
 
@@ -1191,6 +1241,11 @@
             }
             if (!apiKeys[currentProvider]) {
                 showSettings();
+            }
+
+            if (!localStorage.getItem('hasVisited')) {
+                showHelp();
+                localStorage.setItem('hasVisited', 'true');
             }
 
             expandCollapseBtn.addEventListener('click', () => {
