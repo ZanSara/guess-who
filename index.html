@@ -66,11 +66,11 @@
             <!-- Chat Tab -->
             <div class="tab-panel active" id="chat">
                 <div class="chat-container">
-                    <button id="expandCollapseBtn">Expand</button>
                     <div class="model-indicator-bar">
                         <span style="text-align: center;">Playing against:</span>
                         <span class="current-model" id="chatModelIndicator">...</span>
                         <button class="settings-button" onclick="showSettings()">Settings</button>
+                        <button class="settings-button" onclick="showHelp()">Help</button>
                     </div>
                     <div class="chat-messages" id="chatMessages">
                         <button id="expandCollapseBtn">Expand</button>
@@ -186,11 +186,24 @@
         </div>
     </div>
 
+    <!-- Help Modal -->
+    <div id="helpModal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2>How to Play</h2>
+                <button class="close-modal" onclick="closeHelpModal()">&times;</button>
+            </div>
+            <p>This is some placeholder text for the help modal. You can replace this with instructions on how to play the game.</p>
+            <p>Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum.</p>
+        </div>
+    </div>
+
     <script>
         const chatMessages = document.getElementById('chatMessages');
         const chatInput = document.getElementById('chatInput');
         const sendButton = document.querySelector('.chat-input button');
         const apiKeyModal = document.getElementById('apiKeyModal');
+        const helpModal = document.getElementById('helpModal');
         const modalMessage = document.getElementById('modalMessage');
         const saveButton = document.getElementById('saveButton');
         const modelInput = document.getElementById('modelInput');
@@ -518,6 +531,14 @@
             clearAllKeyStatusTexts();
         }
 
+        function showHelp() {
+            helpModal.style.display = 'block';
+        }
+
+        function closeHelpModal() {
+            helpModal.style.display = 'none';
+        }
+
         function clearAllKeyStatusTexts() {
             openaiKeyStatusText.style.display = 'none';
             anthropicKeyStatusText.style.display = 'none';
@@ -818,6 +839,9 @@
         window.onclick = function(event) {
             if (event.target === apiKeyModal) {
                 closeModal();
+            }
+            if (event.target == helpModal) {
+                closeHelpModal();
             }
         }
 
