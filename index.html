@@ -1140,7 +1140,8 @@
                 });
 
                 // Clear chat messages for new game
-                chatMessages.innerHTML = '';
+                const messagesToRemove = chatMessages.querySelectorAll('.message, .typing-indicator, .elimination-notice');
+                messagesToRemove.forEach(msg => msg.remove());
 
                 // Show both board contents and hide loading
                 loadingBoard.style.display = 'none';
@@ -1428,7 +1429,7 @@
             Made by 
             <img src="https://zansara.dev/me/avatar.svg" style="width:20px;margin-bottom:-3px;"> 
             <a href="https://zansara.dev" target="_blank">Sara Zan</a> 
-            with the help of some bots
+            with the help of
             <a href="https://www.anthropic.com/claude-code" target="_blank">🤖</a>
             <a href="https://github.com/google-gemini/gemini-cli" target="_blank">🤖</a>
         </p>
