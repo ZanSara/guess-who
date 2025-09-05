@@ -355,6 +355,7 @@ header h1 {
 }
 
 .chat-container {
+    position: relative; /* Add this for positioning context */
     width: 100%;
     height: 600px;
     background: rgba(255, 255, 255, 0.95);
@@ -1485,4 +1486,34 @@ footer a {
 
 footer a:hover {
     text-decoration: underline;
+}
+
+/* Expand/Collapse Button */
+#expandCollapseBtn {
+    position: absolute;
+    top: 0.5rem;
+    right: 0.5rem;
+    background: rgba(0, 0, 0, 0.1);
+    color: #333;
+    border: none;
+    border-radius: 5px;
+    padding: 0.25rem 0.5rem;
+    font-size: 0.75rem;
+    cursor: pointer;
+    z-index: 10;
+    transition: all 0.2s ease;
+}
+
+#expandCollapseBtn:hover {
+    background: rgba(0, 0, 0, 0.2);
+}
+
+.chat-container.expanded {
+    height: auto;
+}
+
+.chat-container.expanded .chat-messages {
+    flex: 0 1 auto;
+    max-height: none;
+    overflow-y: visible;
 }
