@@ -62,7 +62,7 @@ If you manage to make the LLM win a game without cheating, please share - I have
 
 ... there's gonna be no game at all.
 
-![](/images/llm-opening-the-wrong-way.gif)
+![](/help/llm-spoiling-character.png)
 
 ## Can I have even more fun?
 
@@ -70,17 +70,13 @@ In the settings there are a few options for the advanced player:
 
 1. You can reveal the LLM's character. In this way you can check if the LLM is lying to your about its character (a shockingly frequent occurrence with smaller models)
 
-![](/images/reveal-llm-character.gif)
-
 2. You can also rewrite the system prompt. I provide two versions, the "simple" one (what I would need to tell a human to make them able to play the game) and the "spelled out" version (that makes a few very large LLM actually try to play)
-
-![](/images/system-prompts.gif)
 
 You can also write your own to see what does it take to make your LLM of choice finally be a decent Guess Who partner (good luck).
 
 ## Hall of Fame
 
-... 
+Coming soon!
 
 ## Why is this so hard??
 
