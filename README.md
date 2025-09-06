@@ -28,6 +28,10 @@ _The LLM's board_
 
 You can find the game at https://zansara.dev/guess-who/. You will be asked to add your own API key or the address of your local LLM endpoint in order to play the game.
 
+![](/help/settings.png)
+
+_The settings window_
+
 If you don't trust me with your API keys (legit!) the game is entirely open-source and can be copied, forked, cloned, whatever you prefer, and run locally. You only need a small http server to serve it and you're all set.
 
 For example, you could do the following:
