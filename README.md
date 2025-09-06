@@ -14,6 +14,18 @@ In this repo you can find a simple implementation of a Guess Who game. If you're
 
 The game consists of a chat between you and the LLM, plus a board for each of you to keep track of which characters doesn't match the opponent's description anymore. Both you and the LLM can cross off characters from the board: you by clicking on the card, the LLM by invoking the `eliminateCharacter` tool. The LLM is also in charge of declaring a winner by calling the `endGame` tool.
 
+![](/help/chat.png)
+
+_The chat interface_
+
+![](/help/user-board.png)
+
+_Your board_
+
+![](/help/llm-board.png)
+
+_The LLM's board_
+
 You can find the game at https://zansara.dev/guess-who/. You will be asked to add your own API key or the address of your local LLM endpoint in order to play the game.
 
 If you don't trust me with your API keys (legit!) the game is entirely open-source and can be copied, forked, cloned, whatever you prefer, and run locally. You only need a small http server to serve it and you're all set.

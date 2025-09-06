@@ -21,7 +21,7 @@
         <div class="tab-navigation">
             <button class="tab-button" onclick="switchTab('user-board')">Your Board</button>
             <button class="tab-button active" onclick="switchTab('chat')">Chat</button>
-            <button class="tab-button" onclick="switchTab('llm-board')">AI's Board</button>
+            <button class="tab-button" onclick="switchTab('llm-board')">LLM's Board</button>
         </div>
         
         <div class="tab-content">
@@ -48,8 +48,8 @@
             <div class="tab-panel" id="llm-board">
                 <div class="llm-board">
                     <div class="loading-llm-board" id="loadingLLMBoard">
-                        Loading AI board...
-                    </div>
+                        Loading LLM's board...
+                    </div>AI
                     <div class="llm-board-content" id="llmBoardContent" style="display: none;">
                         <div class="selected-character-row">
                             <div class="selected-character-container" id="llmSelectedContainer">
@@ -158,16 +158,16 @@
                         <label class="toggle-label">
                             <input type="checkbox" id="showLLMCharacter" onchange="toggleLLMCharacterVisibility()">
                             <span class="toggle-slider"></span>
-                            Uncover AI's selected character
+                            Uncover LLM's selected character
                         </label>
-                        <p class="option-description">Flip the AI's character card to reveal its identity. It's <i>technically</i> cheating, but it's useful to make sure the LLM is not lying to you 😉</p>
+                        <p class="option-description">Flip the LLM's character card to reveal its identity. It's <i>technically</i> cheating, but it's useful to make sure the LLM is not lying to you 😉</p>
                     </div>
                 </div>
                 
                 <!-- System Prompt Section -->
                 <div class="system-prompt-section">
                     <h3>System Prompt</h3>
-                    <p>Customize how the AI behaves in the game. This controls the AI's personality, knowledge, and gameplay style.</p>
+                    <p>Customize how the LLM behaves in the game. This controls the LLM's personality, knowledge, and gameplay style.</p>
                     <textarea id="systemPromptTextarea" class="system-prompt-textarea" placeholder="Enter your system prompt here..."></textarea>
                     <div class="system-prompt-actions">
                         <button class="load-prompt-btn" onclick="loadSimplePrompt()">Load Simple Prompt</button>
@@ -190,25 +190,25 @@
     <div id="helpModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
-                <h2>🕵️ Welcome!</h2>
+                <h2>🕵️ Let's Play "Guess Who" with an LLM!</h2>
                 <button class="close-modal" onclick="closeHelpModal()">&times;</button>
             </div>
             <p>
-                On this page you can try to play "Guess Who" against an LLM of your choice.
+                With this little game you can try to play "Guess Who" against an LLM of your choice.
             </p>
             <h2>The Rules</h2>
             <p>
-                If you are not familiar with the game, here is a quick recap of the rules:
+                If you are not familiar with "Guess Who", here is a quick recap of the rules:
             </p>
             <ul>
                 <li>Each player has a board full of characters.</li>
-                <li>Each players receives a random character.</li>
+                <li>Each players draws an additional random character.</li>
                 <li>Your goal is to guess which character the other player has received by asking yes/no questions, such as "Is your character male?" or "Does your character have black hair?" and so on</li>
                 <li>The first player to guess the opponent character's name wins.</li>
             </ul>
             <h2>Choose the LLM</h2>
             <p>
-                Before you can play you have to <b>connect an LLM</b>. This game supports OpenAI-compatible endpoints, Anthropic and Gemini. Just click on Settings, select your provider, type in the model name of the LLM you want to play against and add your API key. You can test that your setup works by clicking on the Test button.
+                Before you can play you have to <b>connect an LLM</b>. This game supports OpenAI-compatible endpoints, Anthropic and Gemini models. Just click on Settings, select your provider, type in the model name of the LLM you want to play against and add your API key. You can test that your setup works by clicking on the Test button.
 
                 <details>
                     <summary>What's an API key?</summary>
@@ -219,14 +219,20 @@
                 <details>
                     <summary>No way I'm giving you my API keys dude</summary>
                     <p>
-                        Legit! I wouldn't either. If you still want to play, you can <a href="https://github.com/ZanSara/guess-who">get the source code on GitHub</a> and run the game yourself. It's extremely easy! The entire game is an HTML file with a little JS and CSS on the side. No frameworks, no build systems, no Node.js, React or whatever. This game has no backend at all. It's fully hosted on GitHub Pages and everything is stored in your local storage. Check the <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file">README</a> of the repo for more details, but it all boils down to running <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file#how-to-play">these three commands</a> on any modern Linux or Mac OS.
+                        Legit! I wouldn't either. If you still want to play, you can <a href="https://github.com/ZanSara/guess-who">get the source code on GitHub</a> and run the game yourself. It's extremely easy! The entire game is an HTML file with a little JS and CSS on the side. No frameworks, no build systems, no Node.js, React or whatever. This game has no backend at all. It's fully hosted on GitHub Pages and everything is stored in your browser's local storage. Check the <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file">README</a> of the repo for more details, but it all boils down to running <a href="https://github.com/ZanSara/guess-who?tab=readme-ov-file#how-to-play">these three commands</a> on any modern Linux or Mac OS.
+                    </p>
+                </details>
+                <details>
+                    <summary>Can I play for free?</summary>
+                    <p>
+                        The game is free, but if you're using a hosted LLM you're likely going to be charged by the token. Check your provider's terms to learn how much the tokens cost in your specific case. Rest assured: in this game there's no hidden consumption of tokens. The LLM is used exclusively to chat with you, so in most cases it should cost very little per game (pennies or less).
                     </p>
                 </details>
             </p>
             <img src="/help/settings.png">
             <h2>Gameplay</h2>
             <p>
-                You can communicate with the LLM through a free form chat, where everything is allowed (just like in real life!).
+                You can communicate with the LLM through a free form chat, where everything is allowed (just like in real life).
             </p>
             <img src="/help/chat.png">
             <p>
@@ -245,6 +251,27 @@
                 When you lose, you'll see this instead:               
             </p>
             <img src="/help/llm-wins.png">
+
+            <h2>For the pros</h2>
+            <p>
+                In the Settings window you can find some more tools. They are especially useful if you're trying to prove a point.
+            </p>
+            <ul>
+                <li><b>Reveal character</b>: reveals the LLM's selected character. With this setting turned on, winning is trivial. However, in many cases the LLM will lie about its character's features (!!!) so it can come useful if you're suspecting your LLM's partner of cheating.</li>
+                <li><b>System Prompt</b>: the system prompt is crucial to the behavior of the LLM. By modifying the system prompt you can alter completely the behavior of the LLM and try to make it play better/worse/differently. I prepared two system prompts that can be loaded with the press of a button:
+                </li>
+                <ul>
+                    <li> the "simple" prompt: what I believe would be sufficient for a smart LLM such as GPT-5 or Claude Opus to play this game normally.</li>
+                    <li> the "spelled-out" prompt: what I eventually had to use in order to make most LLMs get close to a gameplay that makes sense.</li>
+                </ul>
+            </ul>
+            <h2>Why?</h2>
+            <p>
+                My original intent was to make LLMs play against each other and make a sort of leaderboard of their Guess Who prowess... but the results of my initial testing were so delirious that I needed to share. <br>
+                I am now collecting a few gameplays for a future blogpost, which I will link here once ready (or you can subscribe to my <a href="https://zansara.substack.com/">Substack</a> to receive it in your inbox). If you stumble upon some odd behavior, please share! You can find me on <a href="https://x.com/zansara_dev">Twitter/X</a>, <a href="https://bsky.app/profile/zansara.bsky.social">Bluesky</a>, <a href="https://mastodon.social/@zansara">Mastodon</a>, <a href="https://www.linkedin.com/in/sarazanzottera/">LinkedIn</a>, and of course via <a href="mailto:hello@zansara.dev">email</a>. 
+                Needless to say, <a href="https://github.com/ZanSara/guess-who">contributions are welcome</a>.<br>
+                Enjoy!
+            </p>
         </div>
     </div>
 
@@ -846,7 +873,7 @@
                 }
 
             } catch (error) {
-                console.error('Error calling AI API:', error);
+                console.error('Error calling LLM API:', error);
                 
                 // Remove typing indicator if still present
                 if (typingIndicator && typingIndicator.parentNode) {
@@ -1086,7 +1113,7 @@
                 const provider = providers[currentProvider];
                 if (!provider) {
                     console.error('Provider not available:', currentProvider);
-                    addMessage('Error: AI provider not available. Please check your configuration.', false);
+                    addMessage('Error: LLM provider not available. Please check your configuration.', false);
                     return;
                 }
 
@@ -1129,7 +1156,7 @@
                     setProcessingState(false);
                     
                     // Show error message and prompt for API key setup
-                    addMessage(`Unable to connect to AI service: ${error.message}`, false);
+                    addMessage(`Unable to connect to LLM service: ${error.message}`, false);
                     
                     if (error.message.includes('Invalid API key')) {
                         apiKeys[currentProvider] = null;
@@ -1140,11 +1167,11 @@
 
             } catch (error) {
                 console.error('Error in generateInitialGreeting:', error);
-                addMessage('Error starting the game. Please check your AI configuration.', false);
+                addMessage('Error starting the game. Please check your LLM configuration.', false);
             }
         }
 
-        async function loadGameBoard() {
+        async function loadGameBoard(resetChat = true) {
             try {
                 // Reset game state
                 isFirstGameMessage = true;
@@ -1190,8 +1217,10 @@
                 });
 
                 // Clear chat messages for new game
-                const messagesToRemove = chatMessages.querySelectorAll('.message, .typing-indicator, .elimination-notice');
-                messagesToRemove.forEach(msg => msg.remove());
+                if (resetChat) {
+                    const messagesToRemove = chatMessages.querySelectorAll('.message, .typing-indicator, .elimination-notice');
+                    messagesToRemove.forEach(msg => msg.remove());
+                }
 
                 // Show both board contents and hide loading
                 loadingBoard.style.display = 'none';
@@ -1205,7 +1234,7 @@
             } catch (error) {
                 console.error('Error loading game board:', error);
                 loadingBoard.textContent = 'Error loading characters. Please refresh to try again.';
-                loadingLLMBoard.textContent = 'Error loading AI board. Please refresh to try again.';
+                loadingLLMBoard.textContent = 'Error loading LLM board. Please refresh to try again.';
             }
         }
 
@@ -1233,7 +1262,7 @@
             updateKeyStatusIndicators();
             
             // Load the game board
-            loadGameBoard();
+            loadGameBoard(true);
             setupPasswordToggle();
 
             if (!currentProvider) {
@@ -1389,10 +1418,21 @@
                 box-shadow: 0 20px 40px rgba(0, 0, 0, 0.3);
                 max-width: 400px;
                 animation: popIn 0.4s ease-out;
+                position: relative;
             `;
 
+            // Add close button
+            const closeButton = document.createElement('button');
+            closeButton.innerHTML = '&times;';
+            closeButton.className = 'close-modal';
+            closeButton.style.position = 'absolute';
+            closeButton.style.top = '10px';
+            closeButton.style.right = '10px';
+            closeButton.onclick = () => closeCongratulationsPopup(overlay);
+            popup.appendChild(closeButton);
+
             if (winner === 'user') {
-                popup.innerHTML = `
+                popup.innerHTML += `
                     <div style="font-size: 60px; margin-bottom: 20px;">🎉</div>
                     <h2 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">Congratulations!</h2>
                     <p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.4;">You won the game! 🏆</p>
@@ -1407,11 +1447,11 @@
                         cursor: pointer;
                         transition: transform 0.2s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        Play Again!
+                        New Game
                     </button>
                 `;
             } else {
-                popup.innerHTML = `
+                popup.innerHTML += `
                     <div style="font-size: 60px; margin-bottom: 20px;">☠️</div>
                     <h2 style="margin: 0 0 15px 0; font-size: 28px; font-weight: bold;">Try again!</h2>
                     <p style="margin: 0 0 25px 0; font-size: 16px; line-height: 1.4;">You lost this time 😭</p>
@@ -1426,7 +1466,7 @@
                         cursor: pointer;
                         transition: transform 0.2s ease;
                     " onmouseover="this.style.transform='scale(1.05)'" onmouseout="this.style.transform='scale(1)'">
-                        Play Again!
+                        New Game
                     </button>
                 `;
             }
@@ -1459,21 +1499,22 @@
             document.body.appendChild(overlay);
 
             // Close popup handler
-            document.getElementById('closePopup').onclick = () => {
-                overlay.style.animation = 'fadeIn 0.3s ease-out reverse';
-                setTimeout(() => {
-                    overlay.remove();
-                    // Reset the game
-                    location.reload();
-                }, 300);
-            };
+            document.getElementById('closePopup').onclick = () => closeCongratulationsPopup(overlay);
 
             // Close on overlay click
             overlay.onclick = (e) => {
                 if (e.target === overlay) {
-                    document.getElementById('closePopup').click();
+                    closeCongratulationsPopup(overlay);
                 }
             };
+        }
+
+        function closeCongratulationsPopup(overlay) {
+            overlay.style.animation = 'fadeIn 0.3s ease-out reverse';
+            setTimeout(() => {
+                overlay.remove();
+                loadGameBoard(false);
+            }, 300);
         }
 
         // Start the app
