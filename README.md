@@ -6,9 +6,9 @@ _and watch it fail 🫠_
 
 LLMs nowadays are headed for superintelligence, they say. They should make good tabletop game partners then, I guess?
 
-In this repo you can find a simple implementation of a Guess Who game. If you're not familiar with the rules, here they are: each player receives a character and has to guess the opponent's character name by asking yes/no questions in turns. For example: "Is your character blonde?" or "Does your character have glasses?". Whoever guesses first wins. A very simple game that should be within the understanding of any multimodal language model.
+In this repo you can find a simple implementation of a Guess Who game. If you're not familiar with the rules, here they are: each player receives a character and has to guess the opponent's character name by asking one yes/no question at a time. For example: "Is your character blonde?" or "Does your character have glasses?". Whoever guesses the opponent's character first wins. 
 
-[Try for yourself](https://zansara.dev/guess-who/) to find out.
+A very simple game that should be within the understanding of any multimodal language model, right? [Try for yourself](https://zansara.dev/guess-who/) to find out.
 
 ## How to play?
 
