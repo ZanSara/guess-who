@@ -1137,26 +1137,24 @@
                     console.error('Provider not available:', currentProvider);
                     addMessage('Error: LLM provider not available. Please check your configuration.', false);
                     return;
-                }
-
-                // Create a simple prompt to generate the greeting
-                const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user whether you received the image of the board and your character and ask them for their first question. Keep it conversational and under 2 sentences.";
-                
+                }                
                 console.log('Generating initial message...');
                 
                 // Set system prompt for the provider
                 provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
 
                 // Add the board and the selected character to the chat history
-                provider.addToHistory(provider.createMultimodalMessage('Here is the board:', await getImageAsBase64('full-board.png')));
-                provider.addToHistory(provider.createMultimodalMessage('Here is YOUR character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
+                provider.addToHistory(provider.createMultimodalSystemMessage('Here is the board:', await getImageAsBase64('full-board.png')));
+                provider.addToHistory(provider.createMultimodalSystemMessage('Here is your character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
                 
                 // Show typing indicator and disable send button
                 setProcessingState(true);
                 const typingIndicator = showTypingIndicator();
 
                 try {
-                    const greetingMultimodal = await provider.createMultimodalMessage(greetingPrompt);
+                    // Create a simple prompt to generate the greeting
+                    const greetingPrompt = "Generate a brief, friendly greeting message to start a Guess Who game. Tell the user whether you received the images of your board and your character and ask them for their first question. Keep it conversational and under 2 sentences.";
+                    const greetingMultimodal = await provider.createMultimodalSystemMessage(greetingPrompt);
                     const response = await provider.callAPI(greetingMultimodal, currentModel, [ELIMINATE_CHARACTER_FUNCTION]);
                     
                     // Stream the response - message element will be created when typing indicator is removed

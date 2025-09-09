@@ -176,7 +176,7 @@ class OpenAIProvider {
         };
     }
 
-    createMultimodalMessage(textContent, base64Image) {
+    _createMessage(role, textContent, base64Image) {
         const content = [];
         if (textContent) {
             content.push({ type: 'text', text: textContent });
@@ -187,9 +187,17 @@ class OpenAIProvider {
         }
         
         return {
-            role: 'user',
+            role: role,
             content: content
         };
+    }
+
+    createMultimodalMessage(textContent, base64Image) {
+        return this._createMessage('user', textContent, base64Image)
+    }
+
+    createMultimodalSystemMessage(textContent, base64Image) {
+        return this._createMessage('system', textContent, base64Image)
     }
 
 }

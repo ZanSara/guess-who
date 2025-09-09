@@ -179,7 +179,7 @@ class GeminiProvider {
         };
     }
 
-    createMultimodalMessage(textContent, base64Images) {
+    _createMessage(role, textContent, base64Images) {
         const parts = [];
         if (textContent) {
             parts.push({ text: textContent });
@@ -196,10 +196,20 @@ class GeminiProvider {
         }
         
         return {
-            role: 'user',
+            role: role,
             parts: parts
         };
     }
+
+
+    createMultimodalMessage(textContent, base64Image) {
+        return this._createMessage('user', textContent, base64Image)
+    }
+
+    createMultimodalSystemMessage(textContent, base64Image) {
+        return this._createMessage('system', textContent, base64Image)
+    }
+
 
 }
 

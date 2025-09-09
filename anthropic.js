@@ -189,7 +189,7 @@ class AnthropicProvider {
         };
     }
 
-    createMultimodalMessage(textContent, base64Images) {
+    _createMessage(role, textContent, base64Images) {
         const content = [];
         if (textContent) {
             content.push({ type: 'text', text: textContent });
@@ -206,9 +206,17 @@ class AnthropicProvider {
         }
         
         return {
-            role: 'user',
+            role: role,
             content: content
         };
+    }
+
+    createMultimodalMessage(textContent, base64Image) {
+        return this._createMessage('user', textContent, base64Image)
+    }
+
+    createMultimodalSystemMessage(textContent, base64Image) {
+        return this._createMessage('system', textContent, base64Image)
     }
 
 }
