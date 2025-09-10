@@ -219,6 +219,13 @@ class AnthropicProvider {
         return this._createMessage('system', textContent, base64Image)
     }
 
+    addToolRequestMessage(toolId, toolName, result) {
+        // TODO prob unnecessary
+    }
+
+    addToolResponseMessage(toolId, toolName, result) {
+        return this._createMessage('user', `Tool ${toolName} responded: ${result}`)
+    }
 }
 
 // Export for use in main application

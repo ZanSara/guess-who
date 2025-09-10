@@ -200,6 +200,23 @@ class OpenAIProvider {
         return this._createMessage('system', textContent, base64Image)
     }
 
+    addToolRequestMessage(toolCalls) {
+        this.addToHistory({
+            role: "assistant", 
+            content: "",
+            tool_calls: toolCalls
+        });
+    }
+
+    addToolResponseMessage(toolId, toolName, result) {
+        this.addToHistory({
+            role: "tool", 
+            tool_call_id: toolId, 
+            name: toolName, 
+            content: result
+        });
+    }
+
 }
 
 // Export for use in main application

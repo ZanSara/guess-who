@@ -857,6 +857,8 @@
                 
                 // Execute tool calls if any
                 if (toolCalls.length > 0) {
+                    provider.addToolRequestMessage(toolCalls)
+
                     console.log('Executing tool calls:', toolCalls);
                     for (const toolCall of toolCalls) {
                         if (toolCall.function.name === 'eliminateCharacter') {
@@ -864,7 +866,11 @@
                                 const args = JSON.parse(toolCall.function.arguments);
                                 const functionResult = eliminateCharacter(args.characterName);
                                 console.log('Tool call result:', functionResult);
-                                
+                                provider.addToolResponseMessage(
+                                    toolCall.id,
+                                    toolCall.function.name,
+                                    functionResult.message
+                                )
                                 // Display the elimination in the chat
                                 if (functionResult.success) {
                                     const eliminationDiv = document.createElement('div');
