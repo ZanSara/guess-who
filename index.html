@@ -1144,8 +1144,9 @@
                 provider.setSystemPrompt(GAME_SYSTEM_PROMPT);
 
                 // Add the board and the selected character to the chat history
-                provider.addToHistory(provider.createMultimodalSystemMessage('Here is the board:', await getImageAsBase64('full-board.png')));
-                provider.addToHistory(provider.createMultimodalSystemMessage('Here is your character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
+                // Note: some models (Mistral) don't support images in their system prompt, so this has to have role=user
+                provider.addToHistory(provider.createMultimodalMessage('Here is the board:', await getImageAsBase64('full-board.png')));
+                provider.addToHistory(provider.createMultimodalMessage('Here is your character:', await getImageAsBase64(`guess-who-people/${gameState.opponentChosenCharacter}.png`)));
                 
                 // Show typing indicator and disable send button
                 setProcessingState(true);
